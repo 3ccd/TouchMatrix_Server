@@ -47,6 +47,48 @@ class Analyzer(threading.Thread):
 
         self.led_insert_pos = self.__insert_led()
 
+        self.grad_img = cv2.imread('resources/grad.png', cv2.IMREAD_GRAYSCALE)
+        self.plot_img = np.zeros((330, 660), np.uint16)
+
+    def __paste(self, img, imgback, x, y, angle, scale):
+        # x and y are the distance from the center of the background image
+
+        r = img.shape[0]
+        c = img.shape[1]
+        rb = imgback.shape[0]
+        cb = imgback.shape[1]
+        hrb = round(rb / 2)
+        hcb = round(cb / 2)
+        hr = round(r / 2)
+        hc = round(c / 2)
+
+        # Copy the forward image and move to the center of the background image
+        imgrot = np.zeros((rb, cb), np.uint16)
+        imgrot[hrb - hr:hrb + hr, hcb - hc:hcb + hc] = img[:hr * 2, :hc * 2]
+
+        # Rotation and scaling
+        M = cv2.getRotationMatrix2D((hcb, hrb), angle, scale)
+        imgrot = cv2.warpAffine(imgrot, M, (cb, rb))
+        # Translation
+        M = np.float32([[1, 0, x], [0, 1, y]])
+        imgrot = cv2.warpAffine(imgrot, M, (cb, rb))
+
+        # Makeing mask
+        imggray = cv2.cvtColor(imgrot, cv2.COLOR_BGR2GRAY)
+        ret, mask = cv2.threshold(imggray, 10, 255, cv2.THRESH_BINARY)
+        mask_inv = cv2.bitwise_not(mask)
+
+        # Now black-out the area of the forward image in the background image
+        img1_bg = cv2.bitwise_and(imgback, imgback, mask=mask_inv)
+
+        # Take only region of the forward image.
+        img2_fg = cv2.bitwise_and(imgrot, imgrot, mask=mask)
+
+        # Paste the forward image on the background image
+        imgpaste = cv2.add(img1_bg, img2_fg)
+
+        return imgpaste
+
     def __insert_led(self):
             pos = []
             for i in range(11):
@@ -74,7 +116,7 @@ class Analyzer(threading.Thread):
     def __call(self):
         while True:
             self.__loop()
-            time.sleep(0.3)
+            time.sleep(0.03)
 
     def __loop(self):
         data = self.__tm_frame.n_array
@@ -101,10 +143,11 @@ class Analyzer(threading.Thread):
         n_array = np.insert(n_array, self.led_insert_pos, 0)
         n_array = np.reshape(n_array, (11, 22))
 
+
+
         img3 = cv2.resize(n_array, (int(22 * 50), int(11 * 50)), interpolation=cv2.INTER_NEAREST)
         cv2.imshow('ir', img3)
-        cv2.waitKey(30)
-
+        cv2.waitKey(1)
 
 
 def print_sensor_value(unused_addr, tm_frame_, value1, value2):
@@ -143,7 +186,7 @@ def random_values(client):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--serverip", default="192.168.1.127", help="The ip to listen on")
+    parser.add_argument("--serverip", default="192.168.137.1", help="The ip to listen on")
     parser.add_argument("--serverport", type=int, default=7000, help="The port the OSC Server is listening on")
     parser.add_argument("--clientip", default="127.0.0.1", help="The ip of the OSC server")
     parser.add_argument("--clientport", type=int, default=5005, help="The port the OSC Client is listening on")
