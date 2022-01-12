@@ -45,6 +45,8 @@ class TmView(tk.Tk):
                                              width=40)
         self.analyze_start_button = tk.Button(self.control_frame, text="Start Analyze", command=self.analyzer.start,
                                               width=40)
+        self.draw_reset_button = tk.Button(self.control_frame, text="Clear Draw", command=self.analyzer.clear_draw,
+                                              width=40)
         self.read_button = tk.Button(self.control_frame, text="Read Image", command=self.__update_image, width=40)
         self.cal_lower_button = tk.Button(self.cal_frame, text="Lower", command=self.analyzer.calibration_lower,
                                           width=40)
@@ -68,6 +70,7 @@ class TmView(tk.Tk):
 
         self.server_start_button.pack()
         self.analyze_start_button.pack()
+        self.draw_reset_button.pack()
         self.cal_lower_button.pack()
         self.cal_upper_button.pack()
         self.save_cal_button.pack()
@@ -176,6 +179,8 @@ class Analyzer(threading.Thread):
         self.plot_img = None
         self.disp_img = None
         self.disp2_img = None
+        self.draw_img = None
+        self.clear_draw()
 
     def __insert_led(self):
         pos = []
@@ -242,6 +247,10 @@ class Analyzer(threading.Thread):
         extra_px = self.over_scan * 2
         self.plot_img = np.zeros((self.plot_size[0] + extra_px, self.plot_size[1] + extra_px))
 
+    def clear_draw(self):
+        extra_px = self.over_scan * 2
+        self.draw_img = np.zeros((self.plot_size[0] + extra_px, self.plot_size[1] + extra_px, 3), np.uint8)
+
     def __plot(self, sensor_data):
         self.__clear_plot()
         sens_height, sens_width = sensor_data.shape[:2]
@@ -260,7 +269,6 @@ class Analyzer(threading.Thread):
 
     def __loop(self):
         data = self.__tm_frame.n_array
-        data[112] = 0
         # data = np.random.randint(0, 60000, 121, np.uint16)
 
         if data is None:
@@ -297,9 +305,9 @@ class Analyzer(threading.Thread):
 
         ret, tmp = cv2.threshold(self.plot_img, float(self.threshold), 1.0, cv2.THRESH_BINARY)
 
-        kernel = np.ones((10, 10), np.uint8)
-        tmp = cv2.dilate(tmp, kernel, iterations=3)
-        tmp = cv2.erode(tmp, kernel, iterations=2)
+        kernel = np.ones((5, 5), np.uint8)
+        tmp = cv2.dilate(tmp, kernel, iterations=5)
+        tmp = cv2.erode(tmp, kernel, iterations=5)
 
         tmp8bit = (tmp * 255).astype(np.uint8)
         label = cv2.connectedComponentsWithStats(tmp8bit)
@@ -307,8 +315,11 @@ class Analyzer(threading.Thread):
         color = np.zeros((self.plot_img.shape[0], self.plot_img.shape[1], 3), np.uint8)
         cv2.cvtColor(tmp8bit, cv2.COLOR_GRAY2RGB, color)
         if center.shape[0] != 0:
-            cv2.drawMarker(color, (int(center[0, 0]), int(center[0, 1])), (255, 0, 0), markerType=cv2.MARKER_CROSS, markerSize=20, thickness=1,
+            cv2.drawMarker(color, (int(center[0, 0]), int(center[0, 1])), (255, 0, 0), markerType=cv2.MARKER_CROSS,
+                           markerSize=20, thickness=2,
                            line_type=cv2.LINE_8)
+            cv2.circle(self.draw_img, (int(center[0, 0]), int(center[0, 1])), 2, (0, 255, 0), thickness=2)
+        color[self.draw_img > 0] = self.draw_img[self.draw_img > 0]
         self.disp_img = color
         self.disp2_img = (self.plot_img * 255).astype(np.uint8)
 
