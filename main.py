@@ -5,6 +5,7 @@ This can be used to demonstrate concurrent send and recieve over OSC
 """
 
 import argparse
+import math
 import random
 import time
 import threading
@@ -153,8 +154,6 @@ class TmFrame:
 
 
 class Analyzer(threading.Thread):
-    CAL_MAX = 2
-    CAL_MIN = 1
 
     def __init__(self, tm):
         super().__init__(target=self.__call)
@@ -171,16 +170,31 @@ class Analyzer(threading.Thread):
 
         self.led_insert_pos = self.__insert_led()
 
-        self.grad_size = 60
         self.plot_size = (150, 300)
         self.over_scan = 60
-        self.grad_img = cv2.imread('resources/grad.png', cv2.IMREAD_GRAYSCALE) / 255
-        self.grad_img = cv2.resize(self.grad_img, [self.grad_size, self.grad_size])
+
+        self.grad_img = None
         self.plot_img = None
         self.disp_img = None
         self.disp2_img = None
         self.draw_img = None
+
+        self.set_grad(60, 20)
         self.clear_draw()
+
+    def __gauss2d(self, size, sd):
+        gauss2d = np.zeros((size, size))
+        for i in range(size):
+            for j in range(size):
+                x = i - size / 2
+                y = j - size / 2
+                gx = (-0.5) * pow((x / sd), 2)
+                gy = (-0.5) * pow((y / sd), 2)
+                gauss2d[i, j] = math.exp(gx + gy)
+        return gauss2d
+
+    def set_grad(self, size, sd):
+        self.grad_img = self.__gauss2d(size, sd)
 
     def __insert_led(self):
         pos = []
@@ -220,24 +234,6 @@ class Analyzer(threading.Thread):
     def set_threshold(self, threshold):
         self.threshold = threshold
 
-    def __calibration(self, data):
-        if self.cal_state < self.CAL_MIN:
-            print('calibrate min')
-            self.cal_min = data
-            print(data)
-            self.cal_state = self.CAL_MIN
-            input()
-            return
-        if self.cal_state < self.CAL_MAX:
-            print('calibrate max')
-            self.cal_max = data
-            print(data)
-            self.range = self.cal_max - self.cal_min
-            #self.range[self.range < 0] = 0
-            print(self.range)
-            self.cal_state = self.CAL_MAX
-            return
-
     def __call(self):
         while True:
             self.__loop()
@@ -274,7 +270,6 @@ class Analyzer(threading.Thread):
         if data is None:
             return
 
-        # self.__calibration(data)
         if self.cal_min is None or self.cal_max is None:
             return
 
@@ -320,13 +315,9 @@ class Analyzer(threading.Thread):
                            line_type=cv2.LINE_8)
             cv2.circle(self.draw_img, (int(center[0, 0]), int(center[0, 1])), 2, (0, 255, 0), thickness=2)
         color[self.draw_img > 0] = self.draw_img[self.draw_img > 0]
+
         self.disp_img = color
         self.disp2_img = (self.plot_img * 255).astype(np.uint8)
-
-
-        # img3 = cv2.resize(n_array, (int(22 * 50), int(11 * 50)), interpolation=cv2.INTER_NEAREST)
-        # cv2.imshow('ir', self.plot_img.astype(np.uint16))
-        # cv2.waitKey(1)
 
 
 class OSCServer:
