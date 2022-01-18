@@ -68,6 +68,13 @@ class TmView(tk.Tk):
         self.threshold_button = tk.Button(self.setting_frame, text="Set",
                                           command=lambda: self.analyzer.set_threshold(threshold.get()),
                                           width=40)
+        grad_size = tk.StringVar()
+        grad_sd = tk.StringVar()
+        self.gs_entry = tk.Entry(self.setting_frame, textvariable=grad_size, width=40)
+        self.gsd_entry = tk.Entry(self.setting_frame, textvariable=grad_sd, width=40)
+        self.grad_button = tk.Button(self.setting_frame, text="Grad Set",
+                                          command=lambda: self.analyzer.set_grad(int(grad_size.get()), int(grad_sd.get())),
+                                          width=40)
 
         self.server_start_button.pack()
         self.analyze_start_button.pack()
@@ -83,6 +90,9 @@ class TmView(tk.Tk):
         self.clip_button.pack()
         self.threshold_entry.pack()
         self.threshold_button.pack()
+        self.gs_entry.pack()
+        self.gsd_entry.pack()
+        self.grad_button.pack()
 
     def __update_image(self):
         if self.analyzer.disp_img is None:
@@ -171,6 +181,7 @@ class Analyzer(threading.Thread):
         self.led_insert_pos = self.__insert_led()
 
         self.plot_size = (150, 300)
+        self.grad_size = 100
         self.over_scan = 60
 
         self.grad_img = None
@@ -179,7 +190,7 @@ class Analyzer(threading.Thread):
         self.disp2_img = None
         self.draw_img = None
 
-        self.set_grad(60, 20)
+        self.set_grad(self.grad_size, 10)
         self.clear_draw()
 
     def __gauss2d(self, size, sd):
@@ -194,6 +205,7 @@ class Analyzer(threading.Thread):
         return gauss2d
 
     def set_grad(self, size, sd):
+        self.grad_size = size
         self.grad_img = self.__gauss2d(size, sd)
 
     def __insert_led(self):
