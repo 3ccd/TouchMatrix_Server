@@ -229,7 +229,7 @@ class Analyzer(threading.Thread):
 
     def calibration_lower(self):
         self.cal_min = self.__tm_frame.n_array
-        # self.cal_min = np.random.randint(0, 60000, 121, np.uint16)
+        self.cal_min = np.random.randint(0, 60000, 121, np.uint16)
         print(self.cal_min)
 
     def calibration_upper(self):
@@ -237,7 +237,7 @@ class Analyzer(threading.Thread):
             return
 
         self.cal_max = self.__tm_frame.n_array
-        # self.cal_max = np.random.randint(0, 60000, 121, np.uint16)
+        self.cal_max = np.random.randint(0, 60000, 121, np.uint16)
         print(self.cal_max)
         self.range = self.cal_max - self.cal_min
         # self.range[self.range < 0] = 0
@@ -276,8 +276,8 @@ class Analyzer(threading.Thread):
         self.plot_img[self.plot_img > 1.0] = 1.0
 
     def __loop(self):
-        data = self.__tm_frame.n_array
-        # data = np.random.randint(0, 60000, 121, np.uint16)
+        # data = self.__tm_frame.n_array
+        data = np.random.randint(0, 60000, 121, np.uint16)
 
         if data is None:
             return
