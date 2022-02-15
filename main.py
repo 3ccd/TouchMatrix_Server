@@ -76,6 +76,11 @@ class TmView(tk.Tk):
                                           command=lambda: self.analyzer.set_grad(int(grad_size.get()), int(grad_sd.get())),
                                           width=40)
 
+        c_param = tk.StringVar()
+        self.param_entry = tk.Entry(self.setting_frame, textvariable=c_param, width=40)
+        self.param_button = tk.Button(self.setting_frame, text="Param Set",
+                                     command=lambda: self.analyzer.set_curve_param(float(c_param.get())), width=40)
+
         self.server_start_button.pack()
         self.analyze_start_button.pack()
         self.draw_reset_button.pack()
@@ -93,6 +98,8 @@ class TmView(tk.Tk):
         self.gs_entry.pack()
         self.gsd_entry.pack()
         self.grad_button.pack()
+        self.param_entry.pack()
+        self.param_button.pack()
 
     def __update_image(self):
         if self.analyzer.disp_img is None:
@@ -177,10 +184,11 @@ class Analyzer(threading.Thread):
 
         self.curve_type = 0
         self.threshold = 0.5
+        self.gamma = 0.7
 
         self.led_insert_pos = self.__insert_led()
 
-        self.plot_size = (150, 300)
+        self.plot_size = (160, 320)
         self.grad_size = 100
         self.over_scan = 60
 
@@ -192,6 +200,16 @@ class Analyzer(threading.Thread):
 
         self.set_grad(self.grad_size, 10)
         self.clear_draw()
+
+        self.touch_callback = None
+
+    def set_touch_callback(self, callback):
+        self.touch_callback = callback
+
+    def __call_touch_event(self, position):
+        y = position[0] / self.plot_size[0]
+        x = position[1] / self.plot_size[1]
+        self.touch_callback(x, y)
 
     def __gauss2d(self, size, sd):
         gauss2d = np.zeros((size, size))
@@ -240,11 +258,15 @@ class Analyzer(threading.Thread):
         self.cal_max = np.random.randint(0, 60000, 121, np.uint16)
         print(self.cal_max)
         self.range = self.cal_max - self.cal_min
+        print(np.where(self.range == 0))  # ERROR DETECTOR
         # self.range[self.range < 0] = 0
         print(self.range)
 
     def set_threshold(self, threshold):
         self.threshold = threshold
+
+    def set_curve_param(self, gamma):
+        self.gamma = gamma
 
     def __call(self):
         while True:
@@ -256,8 +278,7 @@ class Analyzer(threading.Thread):
         self.plot_img = np.zeros((self.plot_size[0] + extra_px, self.plot_size[1] + extra_px))
 
     def clear_draw(self):
-        extra_px = self.over_scan * 2
-        self.draw_img = np.zeros((self.plot_size[0] + extra_px, self.plot_size[1] + extra_px, 3), np.uint8)
+        self.draw_img = np.zeros((self.plot_size[0], self.plot_size[1], 3), np.uint8)
 
     def __plot(self, sensor_data):
         self.__clear_plot()
@@ -286,11 +307,11 @@ class Analyzer(threading.Thread):
             return
 
         # replace out-of-range values (lower)
-        data[data <= self.cal_min] = self.cal_min[data <= self.cal_min]
+        data[data < self.cal_min] = self.cal_min[data < self.cal_min]
         offset = data - self.cal_min
 
         # replace out-of-range values (upper)
-        offset[offset >= self.range] = self.range[offset >= self.range]
+        offset[offset > self.range] = self.range[offset > self.range]
 
         # normalize
         calc = (offset / self.range)
@@ -298,7 +319,7 @@ class Analyzer(threading.Thread):
 
         # tone curve
         if self.curve_type == 1:
-            calc = (calc ** 0.7)
+            calc = (calc ** self.gamma)
         if self.curve_type == 2:
             calc = (np.sin(np.pi * (calc - 0.1)) + 1) / 2
         if self.curve_type == 3:
@@ -310,7 +331,10 @@ class Analyzer(threading.Thread):
 
         self.__plot(calc)
 
-        ret, tmp = cv2.threshold(self.plot_img, float(self.threshold), 1.0, cv2.THRESH_BINARY)
+        tmpx = self.over_scan + self.plot_size[0]
+        tmpy = self.over_scan + self.plot_size[1]
+        ret, tmp = cv2.threshold(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy],
+                                 float(self.threshold), 1.0, cv2.THRESH_BINARY)
 
         kernel = np.ones((5, 5), np.uint8)
         tmp = cv2.dilate(tmp, kernel, iterations=5)
@@ -319,13 +343,15 @@ class Analyzer(threading.Thread):
         tmp8bit = (tmp * 255).astype(np.uint8)
         label = cv2.connectedComponentsWithStats(tmp8bit)
         center = np.delete(label[3], 0, 0)
-        color = np.zeros((self.plot_img.shape[0], self.plot_img.shape[1], 3), np.uint8)
+        color = np.zeros((tmp.shape[0], tmp.shape[1], 3), np.uint8)
         cv2.cvtColor(tmp8bit, cv2.COLOR_GRAY2RGB, color)
         if center.shape[0] != 0:
             cv2.drawMarker(color, (int(center[0, 0]), int(center[0, 1])), (255, 0, 0), markerType=cv2.MARKER_CROSS,
                            markerSize=20, thickness=2,
                            line_type=cv2.LINE_8)
             cv2.circle(self.draw_img, (int(center[0, 0]), int(center[0, 1])), 2, (0, 255, 0), thickness=2)
+            if self.touch_callback is not None:
+                self.__call_touch_event((center[0, 0], center[0, 1]))
         color[self.draw_img > 0] = self.draw_img[self.draw_img > 0]
 
         self.disp_img = color
