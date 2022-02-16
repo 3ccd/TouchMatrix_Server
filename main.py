@@ -4,155 +4,20 @@ It also transmits on a different port at the same time random values to differen
 This can be used to demonstrate concurrent send and recieve over OSC
 """
 
-import argparse
 import math
-import random
 import time
 import threading
 import numpy as np
 import cv2
-import tkinter as tk
-from PIL import Image, ImageTk, ImageOps
 
 from pythonosc import udp_client
 from pythonosc import dispatcher
 from pythonosc import osc_server
 
-
-class TmView(tk.Tk):
-    def __init__(self, analyzer, server):
-        self.analyzer = analyzer
-        self.server = server
-
-        super().__init__()
-        self.title("TouchMatrix Viewer")
-
-        self.view_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
-        self.control_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
-        self.cal_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
-        self.setting_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
-
-        self.view_frame.grid(row=0, column=0, columnspan=3)
-        self.control_frame.grid(row=1, column=0)
-        self.cal_frame.grid(row=1, column=1)
-        self.setting_frame.grid(row=1, column=2)
-
-        self.canvas = tk.Canvas(self.view_frame, height=300, width=600)
-        self.canvas.grid(row=0, column=0)
-        self.canvas2 = tk.Canvas(self.view_frame, height=300, width=600)
-        self.canvas2.grid(row=0, column=1)
-
-        self.server_start_button = tk.Button(self.control_frame, text="Start Server", command=self.server.start_server,
-                                             width=40)
-        self.analyze_start_button = tk.Button(self.control_frame, text="Start Analyze", command=self.analyzer.start,
-                                              width=40)
-        self.draw_reset_button = tk.Button(self.control_frame, text="Clear Draw", command=self.analyzer.clear_draw,
-                                              width=40)
-        self.read_button = tk.Button(self.control_frame, text="Read Image", command=self.__update_image, width=40)
-        self.cal_lower_button = tk.Button(self.cal_frame, text="Lower", command=self.analyzer.calibration_lower,
-                                          width=40)
-        self.cal_upper_button = tk.Button(self.cal_frame, text="Upper", command=self.analyzer.calibration_upper,
-                                          width=40)
-        self.save_cal_button = tk.Button(self.cal_frame, text="Save", command=self.analyzer.save_data, width=40)
-        self.load_cal_button = tk.Button(self.cal_frame, text="Load", command=self.analyzer.load_data, width=40)
-        self.linear_button = tk.Button(self.setting_frame, text="Linear", command=lambda: self.analyzer.set_curve(0),
-                                       width=40)
-        self.gamma_button = tk.Button(self.setting_frame, text="Gamma", command=lambda: self.analyzer.set_curve(1),
-                                      width=40)
-        self.s_button = tk.Button(self.setting_frame, text="S Tone", command=lambda: self.analyzer.set_curve(2),
-                                  width=40)
-        self.clip_button = tk.Button(self.setting_frame, text="Clip", command=lambda: self.analyzer.set_curve(3),
-                                     width=40)
-        threshold = tk.StringVar()
-        self.threshold_entry = tk.Entry(self.setting_frame, textvariable=threshold, width=40)
-        self.threshold_button = tk.Button(self.setting_frame, text="Set",
-                                          command=lambda: self.analyzer.set_threshold(threshold.get()),
-                                          width=40)
-        grad_size = tk.StringVar()
-        grad_sd = tk.StringVar()
-        self.gs_entry = tk.Entry(self.setting_frame, textvariable=grad_size, width=40)
-        self.gsd_entry = tk.Entry(self.setting_frame, textvariable=grad_sd, width=40)
-        self.grad_button = tk.Button(self.setting_frame, text="Grad Set",
-                                          command=lambda: self.analyzer.set_grad(int(grad_size.get()), int(grad_sd.get())),
-                                          width=40)
-
-        c_param = tk.StringVar()
-        self.param_entry = tk.Entry(self.setting_frame, textvariable=c_param, width=40)
-        self.param_button = tk.Button(self.setting_frame, text="Param Set",
-                                     command=lambda: self.analyzer.set_curve_param(float(c_param.get())), width=40)
-
-        self.server_start_button.pack()
-        self.analyze_start_button.pack()
-        self.draw_reset_button.pack()
-        self.cal_lower_button.pack()
-        self.cal_upper_button.pack()
-        self.save_cal_button.pack()
-        self.load_cal_button.pack()
-        self.read_button.pack()
-        self.linear_button.pack()
-        self.gamma_button.pack()
-        self.s_button.pack()
-        self.clip_button.pack()
-        self.threshold_entry.pack()
-        self.threshold_button.pack()
-        self.gs_entry.pack()
-        self.gsd_entry.pack()
-        self.grad_button.pack()
-        self.param_entry.pack()
-        self.param_button.pack()
-
-    def __update_image(self):
-        if self.analyzer.disp_img is None:
-            self.view_frame.after(100, self.__update_image)
-            return
-
-        # tmp = (self.analyzer.disp_img * 255).astype(np.uint8)
-        self.disp_image(self.analyzer.disp_img)
-        self.disp2_image(self.analyzer.disp2_img)
-
-        self.view_frame.after(20, self.__update_image)
-
-    def disp_image(self, img):
-        # NumPyのndarrayからPillowのImageへ変換
-        pil_image = Image.fromarray(img)
-
-        # キャンバスのサイズを取得
-        canvas_width = self.canvas.winfo_width()
-        canvas_height = self.canvas.winfo_height()
-
-        # 画像のアスペクト比（縦横比）を崩さずに指定したサイズ（キャンバスのサイズ）全体に画像をリサイズする
-        pil_image = ImageOps.pad(pil_image, (canvas_width, canvas_height))
-
-        # PIL.ImageからPhotoImageへ変換する
-        self.photo_image = ImageTk.PhotoImage(image=pil_image)
-
-        # 画像の描画
-        self.canvas.create_image(
-            canvas_width / 2,  # 画像表示位置(Canvasの中心)
-            canvas_height / 2,
-            image=self.photo_image  # 表示画像データ
-        )
-
-    def disp2_image(self, img):
-        # NumPyのndarrayからPillowのImageへ変換
-        pil_image = Image.fromarray(img)
-
-        # キャンバスのサイズを取得
-        canvas_width = self.canvas2.winfo_width()
-        canvas_height = self.canvas2.winfo_height()
-
-        # 画像のアスペクト比（縦横比）を崩さずに指定したサイズ（キャンバスのサイズ）全体に画像をリサイズする
-        pil_image = ImageOps.pad(pil_image, (canvas_width, canvas_height))
-
-        # PIL.ImageからPhotoImageへ変換する
-        self.photo_image2 = ImageTk.PhotoImage(image=pil_image)
-
-        # 画像の描画
-        self.canvas2.create_image(
-            canvas_width / 2,  # 画像表示位置(Canvasの中心)
-            canvas_height / 2,
-            image=self.photo_image2  # 表示画像データ
-        )
+import controller
+import demo.visualizer as vis
+import demo.continuous_lines
+import demo.turn_table
 
 
 class TmFrame:
@@ -247,7 +112,6 @@ class Analyzer(threading.Thread):
 
     def calibration_lower(self):
         self.cal_min = self.__tm_frame.n_array
-        self.cal_min = np.random.randint(0, 60000, 121, np.uint16)
         print(self.cal_min)
 
     def calibration_upper(self):
@@ -255,7 +119,6 @@ class Analyzer(threading.Thread):
             return
 
         self.cal_max = self.__tm_frame.n_array
-        self.cal_max = np.random.randint(0, 60000, 121, np.uint16)
         print(self.cal_max)
         self.range = self.cal_max - self.cal_min
         print(np.where(self.range == 0))  # ERROR DETECTOR
@@ -297,8 +160,7 @@ class Analyzer(threading.Thread):
         self.plot_img[self.plot_img > 1.0] = 1.0
 
     def __loop(self):
-        # data = self.__tm_frame.n_array
-        data = np.random.randint(0, 60000, 121, np.uint16)
+        data = self.__tm_frame.n_array
 
         if data is None:
             return
@@ -392,10 +254,25 @@ class OSCServer:
 
 if __name__ == "__main__":
 
+    # Sharing Data
     t_frame = TmFrame()
 
+    # initialize instance
     t_server = OSCServer(t_frame, "192.168.137.1")
     t_analyzer = Analyzer(t_frame)
+    t_visualizer = vis.Visualizer((320, 640))
+    t_view = controller.TmView(t_analyzer, t_server, t_visualizer)
 
-    t_view = TmView(t_analyzer, t_server)
+    # set touch event callback
+    t_analyzer.set_touch_callback(t_visualizer.touch_event_from_analyzer)
+
+    # initialize demo contents instance
+    demo_lines = demo.continuous_lines.ContinuousLines(t_visualizer)
+    demo_table = demo.turn_table.TurnTable(t_visualizer)
+
+    # register demo contents
+    t_view.insert_contents(demo_lines)
+    t_view.insert_contents(demo_table)
+
+    # start gui
     t_view.mainloop()
