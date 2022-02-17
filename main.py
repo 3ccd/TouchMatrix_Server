@@ -10,29 +10,12 @@ import threading
 import numpy as np
 import cv2
 
-from pythonosc import udp_client
-from pythonosc import dispatcher
-from pythonosc import osc_server
+import connection
 
 import controller
 import demo.visualizer as vis
 import demo.continuous_lines
 import demo.turn_table
-
-
-class TmFrame:
-
-    def __init__(self):
-        self.frame_buffer = np.zeros(121, np.uint16)
-        self.available = False
-        self.n_array = None
-
-    def add_pixel(self, index, value):
-        self.frame_buffer[index] = value
-
-    def finalize(self):
-        self.available = True
-        self.n_array = np.array(self.frame_buffer, np.uint16)
 
 
 class Analyzer(threading.Thread):
@@ -220,45 +203,16 @@ class Analyzer(threading.Thread):
         self.disp2_img = (self.plot_img * 255).astype(np.uint8)
 
 
-class OSCServer:
-    def __init__(self, tm_frame, ip="127.0.0.1", port=7000):
-        self.ip = ip
-        self.port = port
-        self.server = None
-        self.buffer = tm_frame
 
-        # listen to addresses and print changes in values
-        self.dispatcher = dispatcher.Dispatcher()
-        self.dispatcher.map("/sensor_value", self.set_buffer)
-
-    def set_addr(self, ip, port):
-        self.ip = ip
-        self.port = port
-
-    def set_buffer(self, something,  value1, value2):
-        self.buffer.add_pixel(value1, value2)
-        if value1 == 120:
-            self.buffer.finalize()
-
-    def start_server(self):
-        print("Starting Server")
-        self.server = osc_server.ThreadingOSCUDPServer(
-            (self.ip, self.port), self.dispatcher)
-        print("Serving on {}".format(self.server.server_address))
-        thread = threading.Thread(target=self.server.serve_forever)
-        thread.start()
-
-    def stop(self):
-        self.server.stop()
 
 
 if __name__ == "__main__":
 
     # Sharing Data
-    t_frame = TmFrame()
+    t_frame = connection.TmFrame()
 
     # initialize instance
-    t_server = OSCServer(t_frame, "192.168.137.1")
+    t_server = connection.OSCServer(t_frame, "192.168.137.1")
     t_analyzer = Analyzer(t_frame)
     t_visualizer = vis.Visualizer((320, 640))
     t_view = controller.TmView(t_analyzer, t_server, t_visualizer)
