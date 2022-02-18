@@ -18,8 +18,6 @@ class TurnTable(DemoContents, ABC):
         self.p_angle_r = None
 
     def draw(self):
-        if self.visualizer.prev_touch_pos is None:
-            return
         self.clear_frame()
 
         cv2.circle(self.frame, (160, 160), 150, (255, 255, 255), thickness=-1)
@@ -35,7 +33,7 @@ class TurnTable(DemoContents, ABC):
                        math.floor(math.sin(self.angle_r) * 100 + 160))
         cv2.circle(self.frame, indicator_r, 40, (0, 0, 0), thickness=-1)
 
-        if self.visualizer.touch_pos[0] < 320:
+        if self.visualizer.touch_pos[0] < 320 and self.visualizer.is_touch:
             angle = math.atan2(self.visualizer.touch_pos[1] - 160, self.visualizer.touch_pos[0] - 160)
             if self.p_angle_l is None:
                 self.p_angle_l = angle
@@ -46,7 +44,7 @@ class TurnTable(DemoContents, ABC):
             self.angle_l = self.angle_l + 0.1
             self.p_angle_l = None
 
-        if self.visualizer.touch_pos[0] > 320:
+        if self.visualizer.touch_pos[0] > 320 and self.visualizer.is_touch:
             angle = math.atan2(self.visualizer.touch_pos[1] - 160, self.visualizer.touch_pos[0] - 480)
             if self.p_angle_r is None:
                 self.p_angle_r = angle

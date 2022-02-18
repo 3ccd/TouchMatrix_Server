@@ -9,13 +9,13 @@ class Visualizer:
 
     def __init__(self, size):
         self.thread = None
-        self.running = False        # スレッド処理の状態
-        self.content = None         # 表示するコンテンツ
+        self.running = False            # スレッド処理の状態
+        self.content = None             # 表示するコンテンツ
 
-        self.frame_size = size      # 描画サイズ
-        self.is_touch = False       # タッチしているか
-        self.touch_pos = None       # タッチ座標
-        self.prev_touch_pos = None  # 前回のタッチ座標
+        self.frame_size = size          # 描画サイズ
+        self.is_touch = False           # タッチしているか
+        self.touch_pos = (-1, -1)       # タッチ座標
+        self.prev_touch_pos = (-1, -1)  # 前回のタッチ座標
 
     def run(self):
         while self.running:
@@ -48,14 +48,34 @@ class Visualizer:
     def set_content(self, content):
         self.content = content
 
-    def touch_event_from_analyzer(self, x, y):
-        pass
+    def touch_event_from_analyzer(self, event, x, y):
+        if event == cv2.EVENT_MOUSEMOVE:
+            self.is_touch = True
+            x_s = int(x * self.frame_size[0])
+            y_s = int(y * self.frame_size[1])
+            if self.prev_touch_pos == (-1, -1):
+                self.prev_touch_pos = (x_s, y_s)
+            self.touch_pos = (x_s, y_s)
+
+        if event == cv2.EVENT_RBUTTONDOWN:
+            self.is_touch = True
+        if event == cv2.EVENT_RBUTTONUP:
+            self.is_touch = False
+            self.prev_touch_pos = (-1, -1)
+            self.touch_pos = (-1, -1)
 
     def touch_event(self, event, x, y, flags, param):
         if event == cv2.EVENT_MOUSEMOVE:
-            if self.prev_touch_pos is None:
+            if self.prev_touch_pos == (-1, -1):
                 self.prev_touch_pos = (x, y)
             self.touch_pos = (x, y)
+
+        if event == cv2.EVENT_RBUTTONDOWN:
+            self.is_touch = True
+        if event == cv2.EVENT_RBUTTONUP:
+            self.is_touch = False
+            self.prev_touch_pos = (-1, -1)
+            self.touch_pos = (-1, -1)
 
 
 class DemoContents(metaclass=ABCMeta):

@@ -75,15 +75,16 @@ class FrameTransmitter:
 
     def __conversion(self):
         send_data = self.frame.tolist()
+        return send_data
 
-    def __transmit_frame(self, client):
+    def __transmit_frame(self):
         while self.running:
             if self.frame_status is False:
                 time.sleep(1)       # wait for frame data
                 continue
 
-        self.client.send_message("/frame", self.frame)
-        time.sleep(0.05)
+            self.client.send_message("/frame", self.__conversion())
+            time.sleep(0.05)
 
     def start_client(self):
         print("Starting Client")

@@ -50,14 +50,21 @@ class Analyzer(threading.Thread):
         self.clear_draw()
 
         self.touch_callback = None
+        self.touch_status = False
 
     def set_touch_callback(self, callback):
         self.touch_callback = callback
 
-    def __call_touch_event(self, position):
-        y = position[0] / self.plot_size[0]
-        x = position[1] / self.plot_size[1]
-        self.touch_callback(x, y)
+    def __call_touch_event(self, event, position=(0, 0)):
+        if self.touch_callback is None:
+            return
+
+        if event == cv2.EVENT_MOUSEMOVE:
+            y = position[0] / self.plot_size[0]
+            x = position[1] / self.plot_size[1]
+            self.touch_callback(event, y, x)
+        else:
+            self.touch_callback(event, 0, 0)
 
     def __gauss2d(self, size, sd):
         gauss2d = np.zeros((size, size))
@@ -195,8 +202,14 @@ class Analyzer(threading.Thread):
                            markerSize=20, thickness=2,
                            line_type=cv2.LINE_8)
             cv2.circle(self.draw_img, (int(center[0, 0]), int(center[0, 1])), 2, (0, 255, 0), thickness=2)
-            if self.touch_callback is not None:
-                self.__call_touch_event((center[0, 0], center[0, 1]))
+            if self.touch_status is False:
+                self.__call_touch_event(cv2.EVENT_RBUTTONDOWN)
+                self.touch_status = True
+            self.__call_touch_event(cv2.EVENT_MOUSEMOVE, (center[0, 0], center[0, 1]))
+        else:
+            if self.touch_status is True:
+                self.__call_touch_event(cv2.EVENT_RBUTTONUP)
+                self.touch_status = False
         color[self.draw_img > 0] = self.draw_img[self.draw_img > 0]
 
         self.disp_img = color
