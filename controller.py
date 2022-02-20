@@ -3,10 +3,11 @@ from PIL import Image, ImageTk, ImageOps
 
 
 class TmView(tk.Tk):
-    def __init__(self, analyzer, server, visualizer):
+    def __init__(self, analyzer, server, visualizer, client):
         self.analyzer = analyzer
         self.server = server
         self.visualizer = visualizer
+        self.client = client
 
         super().__init__()
         self.title("TouchMatrix Viewer")
@@ -70,7 +71,8 @@ class TmView(tk.Tk):
         self.demo_list = tk.Listbox(self.demo_frame)
         self.demo_list.bind('<<ListboxSelect>>', self.__select_demo)
         self.demo_start_button = tk.Button(self.demo_frame, text="START", command=self.visualizer.start, width=40)
-        self.demo_stop_button = tk.Button(self.demo_frame, text="STOP", command=self.visualizer.stop, width=40)
+        self.client_start_button = tk.Button(self.demo_frame, text="Client Start", command=self.client.start_client
+                                             , width=40)
 
         self.server_start_button.pack()
         self.analyze_start_button.pack()
@@ -93,7 +95,7 @@ class TmView(tk.Tk):
         self.param_button.pack()
         self.demo_list.pack()
         self.demo_start_button.pack()
-        self.demo_stop_button.pack()
+        self.client_start_button.pack()
 
         self.contents = list()
 

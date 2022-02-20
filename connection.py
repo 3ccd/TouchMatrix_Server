@@ -6,6 +6,8 @@ import numpy as np
 from pythonosc import udp_client
 from pythonosc import dispatcher
 from pythonosc import osc_server
+from pythonosc import osc_bundle_builder
+from pythonosc import osc_message_builder
 
 
 class TmFrame:
@@ -57,7 +59,7 @@ class OSCServer:
 
 class FrameTransmitter:
 
-    def __init__(self, ip="127.0.0.1", port=8585):
+    def __init__(self, ip="127.0.0.1", port=9000):
         self.ip = ip
         self.port = port
         self.frame_status = False
@@ -66,16 +68,17 @@ class FrameTransmitter:
         self.client = None
 
     def set_frame(self, frame):
-        self.frame = frame
+        self.frame = frame.copy()
         self.frame_status = True
 
-    def __get_frame(self):
+    def __get_frame(self, ch):
         self.frame_status = False
-        return self.frame
-
-    def __conversion(self):
-        send_data = self.frame.tolist()
-        return send_data
+        if ch == 'r':
+            return self.frame[:, :, 0].flatten().tolist()
+        if ch == 'g':
+            return self.frame[:, :, 1].flatten().tolist()
+        if ch == 'b':
+            return self.frame[:, :, 2].flatten().tolist()
 
     def __transmit_frame(self):
         while self.running:
@@ -83,8 +86,13 @@ class FrameTransmitter:
                 time.sleep(1)       # wait for frame data
                 continue
 
-            self.client.send_message("/frame", self.__conversion())
-            time.sleep(0.05)
+            self.client.send_message("/frame/red/upper", self.__get_frame('r')[:1024])
+            self.client.send_message("/frame/red/lower", self.__get_frame('r')[1024:])
+            self.client.send_message("/frame/green/upper", self.__get_frame('g')[:1024])
+            self.client.send_message("/frame/green/lower", self.__get_frame('g')[1024:])
+            self.client.send_message("/frame/blue/upper", self.__get_frame('b')[:1024])
+            self.client.send_message("/frame/blue/lower", self.__get_frame('b')[1024:])
+            time.sleep(0.1)
 
     def start_client(self):
         print("Starting Client")

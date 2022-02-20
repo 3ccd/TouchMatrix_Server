@@ -15,6 +15,12 @@ class ContinuousLines(DemoContents, ABC):
             return
         cv2.line(self.frame, self.visualizer.touch_pos, self.visualizer.prev_touch_pos, (255, 255, 255), thickness=10)
 
+    def touch_up(self):
+        pass
+
+    def touch_down(self):
+        pass
+
 
 if __name__ == "__main__":
     vis = Visualizer((320, 640))

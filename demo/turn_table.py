@@ -60,6 +60,12 @@ class TurnTable(DemoContents, ABC):
         if self.angle_r > 360:
             self.angle_r = 0.0
 
+    def touch_down(self):
+        pass
+
+    def touch_up(self):
+        pass
+
 
 if __name__ == "__main__":
     vis = Visualizer((320, 640))

@@ -16,6 +16,7 @@ import controller
 import demo.visualizer as vis
 import demo.continuous_lines
 import demo.turn_table
+import demo.synthesizer
 
 
 class Analyzer(threading.Thread):
@@ -226,20 +227,25 @@ if __name__ == "__main__":
 
     # initialize instance
     t_server = connection.OSCServer(t_frame, "192.168.137.1")
+    t_client = connection.FrameTransmitter(ip='192.168.1.121')
     t_analyzer = Analyzer(t_frame)
     t_visualizer = vis.Visualizer((320, 640))
-    t_view = controller.TmView(t_analyzer, t_server, t_visualizer)
+    t_view = controller.TmView(t_analyzer, t_server, t_visualizer, t_client)
 
     # set touch event callback
     t_analyzer.set_touch_callback(t_visualizer.touch_event_from_analyzer)
+    # set draw event callback
+    t_visualizer.set_callback(t_client.set_frame)
 
     # initialize demo contents instance
     demo_lines = demo.continuous_lines.ContinuousLines(t_visualizer)
     demo_table = demo.turn_table.TurnTable(t_visualizer)
+    demo_synth = demo.synthesizer.Synthesizer(t_visualizer)
 
     # register demo contents
     t_view.insert_contents(demo_lines)
     t_view.insert_contents(demo_table)
+    t_view.insert_contents(demo_synth)
 
     # start gui
     t_view.mainloop()
