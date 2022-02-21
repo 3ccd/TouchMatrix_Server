@@ -5,18 +5,15 @@ This can be used to demonstrate concurrent send and recieve over OSC
 """
 
 import math
+import random
 import time
 import threading
 import numpy as np
 import cv2
 
 import connection
-
 import controller
-import demo.visualizer as vis
-import demo.continuous_lines
-import demo.turn_table
-import demo.synthesizer
+from demo import visualizer as vis
 
 
 class Analyzer(threading.Thread):
@@ -45,18 +42,23 @@ class Analyzer(threading.Thread):
         self.plot_img = None
         self.disp_img = None
         self.disp2_img = None
-        self.draw_img = None
 
         self.set_grad(self.grad_size, 10)
-        self.clear_draw()
 
         self.touch_callback = None
+        self.draw_callback = None
         self.touch_status = False
 
     def set_touch_callback(self, callback):
         self.touch_callback = callback
 
-    def __call_touch_event(self, event, position=(0, 0)):
+    def set_draw_callback(self, callback):
+        self.draw_callback = callback
+
+    def _call_draw_event(self, labels):
+        self.draw_callback(labels)
+
+    def _call_object_event(self, event, position=(0, 0)):
         if self.touch_callback is None:
             return
 
@@ -95,7 +97,14 @@ class Analyzer(threading.Thread):
         np.savez("./cal_data", self.cal_min, self.cal_max, self.range)
 
     def load_data(self):
-        data = np.load("./cal_data.npz")
+        data = None
+
+        try:
+            data = np.load("./cal_data.npz")
+        except FileNotFoundError:
+            print('Calibration file not found')
+            return
+
         print(data.files)
         self.cal_min = data['arr_0']
         self.cal_max = data['arr_1']
@@ -107,6 +116,7 @@ class Analyzer(threading.Thread):
 
     def calibration_upper(self):
         if self.cal_min is None:
+            print('need lower calibration')
             return
 
         self.cal_max = self.__tm_frame.n_array
@@ -131,9 +141,6 @@ class Analyzer(threading.Thread):
         extra_px = self.over_scan * 2
         self.plot_img = np.zeros((self.plot_size[0] + extra_px, self.plot_size[1] + extra_px))
 
-    def clear_draw(self):
-        self.draw_img = np.zeros((self.plot_size[0], self.plot_size[1], 3), np.uint8)
-
     def __plot(self, sensor_data):
         self.__clear_plot()
         sens_height, sens_width = sensor_data.shape[:2]
@@ -149,6 +156,22 @@ class Analyzer(threading.Thread):
                 self.plot_img[y - grad_h:y + grad_h, x - grad_h:x + grad_h] += tmp
 
         self.plot_img[self.plot_img > 1.0] = 1.0
+
+    def put_color_to_objects(self, src_img, label_table):
+        label_img = np.zeros_like(src_img)
+        for label in range(label_table.max() + 1):
+            label_group_index = np.where(label_table == label)
+            label_img[label_group_index] = random.sample(range(255), k=3)
+        return label_img
+
+    def draw_centroids(self, src_img, centroids):
+        centroids_img = src_img
+        for coordinate in centroids[1:]:
+            center = (int(coordinate[0]), int(coordinate[1]))
+            cv2.drawMarker(centroids_img, (int(center[0, 0]), int(center[0, 1])), (255, 0, 0), markerType=cv2.MARKER_CROSS,
+                           markerSize=20, thickness=2,
+                           line_type=cv2.LINE_8)
+        return centroids_img
 
     def __loop(self):
         data = self.__tm_frame.n_array
@@ -193,31 +216,27 @@ class Analyzer(threading.Thread):
         tmp = cv2.dilate(tmp, kernel, iterations=5)
         tmp = cv2.erode(tmp, kernel, iterations=5)
 
-        tmp8bit = (tmp * 255).astype(np.uint8)
-        label = cv2.connectedComponentsWithStats(tmp8bit)
-        center = np.delete(label[3], 0, 0)
-        color = np.zeros((tmp.shape[0], tmp.shape[1], 3), np.uint8)
-        cv2.cvtColor(tmp8bit, cv2.COLOR_GRAY2RGB, color)
-        if center.shape[0] != 0:
-            cv2.drawMarker(color, (int(center[0, 0]), int(center[0, 1])), (255, 0, 0), markerType=cv2.MARKER_CROSS,
-                           markerSize=20, thickness=2,
-                           line_type=cv2.LINE_8)
-            cv2.circle(self.draw_img, (int(center[0, 0]), int(center[0, 1])), 2, (0, 255, 0), thickness=2)
+        tmp8bit = (tmp * 255).astype(np.uint8)                          # 8bitのスケールへ変換
+        color = np.zeros((tmp.shape[0], tmp.shape[1], 3), np.uint8)     # 3chの画像を生成
+        cv2.cvtColor(tmp8bit, cv2.COLOR_GRAY2RGB, color)                # RGB画像へ変換
+
+        retval, labels, stats, centroids = cv2.connectedComponentsWithStats(tmp8bit)        # Labeling
+
+        if len(centroids) != 0:
             if self.touch_status is False:
-                self.__call_touch_event(cv2.EVENT_RBUTTONDOWN)
+                self._call_object_event(cv2.EVENT_RBUTTONDOWN)
                 self.touch_status = True
-            self.__call_touch_event(cv2.EVENT_MOUSEMOVE, (center[0, 0], center[0, 1]))
+            self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[0])
         else:
             if self.touch_status is True:
-                self.__call_touch_event(cv2.EVENT_RBUTTONUP)
+                self._call_object_event(cv2.EVENT_RBUTTONUP)
                 self.touch_status = False
-        color[self.draw_img > 0] = self.draw_img[self.draw_img > 0]
 
-        self.disp_img = color
+        color_labels = self.put_color_to_objects(color, labels)
+        self._call_draw_event(color_labels)
+
+        self.disp_img = color_labels
         self.disp2_img = (self.plot_img * 255).astype(np.uint8)
-
-
-
 
 
 if __name__ == "__main__":
@@ -234,18 +253,22 @@ if __name__ == "__main__":
 
     # set touch event callback
     t_analyzer.set_touch_callback(t_visualizer.touch_event_from_analyzer)
+    t_analyzer.set_draw_callback(t_visualizer.set_object_image)
     # set draw event callback
     t_visualizer.set_callback(t_client.set_frame)
 
     # initialize demo contents instance
-    demo_lines = demo.continuous_lines.ContinuousLines(t_visualizer)
-    demo_table = demo.turn_table.TurnTable(t_visualizer)
-    demo_synth = demo.synthesizer.Synthesizer(t_visualizer)
+    from demo import continuous_lines, turn_table, synthesizer, object_detection
+    demo_lines = continuous_lines.ContinuousLines(t_visualizer)
+    demo_table = turn_table.TurnTable(t_visualizer)
+    demo_synth = synthesizer.Synthesizer(t_visualizer)
+    demo_detection = object_detection.ObjectDetection(t_visualizer)
 
     # register demo contents
     t_view.insert_contents(demo_lines)
     t_view.insert_contents(demo_table)
     t_view.insert_contents(demo_synth)
+    t_view.insert_contents(demo_detection)
 
     # start gui
     t_view.mainloop()

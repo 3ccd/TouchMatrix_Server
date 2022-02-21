@@ -33,8 +33,6 @@ class TmView(tk.Tk):
                                              width=40)
         self.analyze_start_button = tk.Button(self.control_frame, text="Start Analyze", command=self.analyzer.start,
                                               width=40)
-        self.draw_reset_button = tk.Button(self.control_frame, text="Clear Draw", command=self.analyzer.clear_draw,
-                                           width=40)
         self.read_button = tk.Button(self.control_frame, text="Read Image", command=self.__update_image, width=40)
         self.cal_lower_button = tk.Button(self.cal_frame, text="Lower", command=self.analyzer.calibration_lower,
                                           width=40)
@@ -76,7 +74,6 @@ class TmView(tk.Tk):
 
         self.server_start_button.pack()
         self.analyze_start_button.pack()
-        self.draw_reset_button.pack()
         self.cal_lower_button.pack()
         self.cal_upper_button.pack()
         self.save_cal_button.pack()

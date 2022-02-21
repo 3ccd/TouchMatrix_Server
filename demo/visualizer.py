@@ -21,6 +21,8 @@ class Visualizer:
 
         self.draw_callback = None
 
+        self.object_image = np.zeros(self.frame_size, dtype=np.uint8)
+
         self.midi_out = None
         self.init_midi()
 
@@ -61,6 +63,9 @@ class Visualizer:
 
     def set_content(self, content):
         self.content = content
+
+    def set_object_image(self, img):
+        self.object_image = cv2.resize(img, dsize=(self.frame_size[1], self.frame_size[0]))
 
     def touch_event_from_analyzer(self, event, x, y):
         x_s = 0
@@ -119,10 +124,8 @@ class DemoContents(metaclass=ABCMeta):
     def draw(self):
         pass
 
-    @abstractmethod
     def touch_down(self):
         pass
 
-    @abstractmethod
     def touch_up(self):
         pass
