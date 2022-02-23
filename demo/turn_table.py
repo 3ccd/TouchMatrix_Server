@@ -20,8 +20,8 @@ class TurnTable(DemoContents, ABC):
     def draw(self):
         self.clear_frame()
 
-        cv2.circle(self.frame, (160, 160), 150, (255, 255, 255), thickness=-1)
-        cv2.circle(self.frame, (480, 160), 150, (255, 255, 255), thickness=-1)
+        cv2.circle(self.frame, (160, 160), 150, (0, 0, 255), thickness=-1)
+        cv2.circle(self.frame, (480, 160), 150, (255, 0, 0), thickness=-1)
         cv2.circle(self.frame, (160, 160), 50, (0, 0, 0), thickness=-1)
         cv2.circle(self.frame, (480, 160), 50, (0, 0, 0), thickness=-1)
 

@@ -1,6 +1,12 @@
 import tkinter as tk
 from PIL import Image, ImageTk, ImageOps
 
+import numpy as np
+
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib.figure import Figure
+import matplotlib.animation as animation
 
 class TmView(tk.Tk):
     def __init__(self, analyzer, server, visualizer, client):
@@ -17,12 +23,14 @@ class TmView(tk.Tk):
         self.cal_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
         self.setting_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
         self.demo_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
+        self.figure_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
 
         self.view_frame.grid(row=0, column=0, columnspan=4)
         self.control_frame.grid(row=1, column=0)
         self.cal_frame.grid(row=1, column=1)
         self.setting_frame.grid(row=1, column=2)
         self.demo_frame.grid(row=1, column=3)
+        self.figure_frame.grid(row=2, column=0)
 
         self.canvas = tk.Canvas(self.view_frame, height=300, width=600)
         self.canvas.grid(row=0, column=0)
@@ -95,6 +103,31 @@ class TmView(tk.Tk):
         self.client_start_button.pack()
 
         self.contents = list()
+        self.fig = None
+        self.line = None
+        self.anim = None
+
+        self.init_figure()
+
+    def get_sensor_data(self, index):
+        if self.analyzer.latest_data is None:
+            return 0
+        return self.analyzer.latest_data[index]
+
+    def set_sensor_data(self):
+        self.line.set_ydata(self.get_sensor_data(60))
+        return self.line
+
+    def init_figure(self):
+        self.fig = Figure(figsize=(3,2))
+        canvas = FigureCanvasTkAgg(self.fig, master=self.figure_frame)
+
+        x = np.arange(0, 100, 1)
+        plt = self.fig.add_subplot(111)
+        plt.set_ylim([0, 65000])
+        self.line, = plt.plot(x, np.zeros(x.shape))
+
+        canvas.get_tk_widget().pack()
 
     def insert_contents(self, content):
         self.contents.append(content)

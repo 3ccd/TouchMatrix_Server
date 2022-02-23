@@ -29,7 +29,7 @@ class Analyzer(threading.Thread):
         self.range = None
 
         self.curve_type = 0
-        self.threshold = 0.5
+        self.threshold = 0.3
         self.gamma = 0.7
 
         self.led_insert_pos = self.__insert_led()
@@ -43,11 +43,13 @@ class Analyzer(threading.Thread):
         self.disp_img = None
         self.disp2_img = None
 
-        self.set_grad(self.grad_size, 10)
+        self.set_grad(self.grad_size, 16)
 
         self.touch_callback = None
         self.draw_callback = None
         self.touch_status = False
+
+        self.latest_data = None
 
     def set_touch_callback(self, callback):
         self.touch_callback = callback
@@ -168,13 +170,14 @@ class Analyzer(threading.Thread):
         centroids_img = src_img
         for coordinate in centroids[1:]:
             center = (int(coordinate[0]), int(coordinate[1]))
-            cv2.drawMarker(centroids_img, (int(center[0, 0]), int(center[0, 1])), (255, 0, 0), markerType=cv2.MARKER_CROSS,
+            cv2.drawMarker(centroids_img, center, (255, 0, 0), markerType=cv2.MARKER_CROSS,
                            markerSize=20, thickness=2,
                            line_type=cv2.LINE_8)
         return centroids_img
 
     def __loop(self):
         data = self.__tm_frame.n_array
+        self.latest_data = data
 
         if data is None:
             return
@@ -222,17 +225,17 @@ class Analyzer(threading.Thread):
 
         retval, labels, stats, centroids = cv2.connectedComponentsWithStats(tmp8bit)        # Labeling
 
-        if len(centroids) != 0:
+        if len(centroids) > 1:
             if self.touch_status is False:
                 self._call_object_event(cv2.EVENT_RBUTTONDOWN)
                 self.touch_status = True
-            self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[0])
+            self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[1])
         else:
             if self.touch_status is True:
                 self._call_object_event(cv2.EVENT_RBUTTONUP)
                 self.touch_status = False
 
-        color_labels = self.put_color_to_objects(color, labels)
+        color_labels = self.draw_centroids(color, centroids)
         self._call_draw_event(color_labels)
 
         self.disp_img = color_labels
@@ -245,8 +248,8 @@ if __name__ == "__main__":
     t_frame = connection.TmFrame()
 
     # initialize instance
-    t_server = connection.OSCServer(t_frame, "192.168.137.1")
-    t_client = connection.FrameTransmitter(ip='192.168.1.121')
+    t_server = connection.OSCServer(t_frame, "192.168.0.4")
+    t_client = connection.FrameTransmitter(ip='192.168.0.2')
     t_analyzer = Analyzer(t_frame)
     t_visualizer = vis.Visualizer((320, 640))
     t_view = controller.TmView(t_analyzer, t_server, t_visualizer, t_client)
@@ -258,17 +261,19 @@ if __name__ == "__main__":
     t_visualizer.set_callback(t_client.set_frame)
 
     # initialize demo contents instance
-    from demo import continuous_lines, turn_table, synthesizer, object_detection
+    from demo import continuous_lines, turn_table, synthesizer, object_detection, object_scan
     demo_lines = continuous_lines.ContinuousLines(t_visualizer)
     demo_table = turn_table.TurnTable(t_visualizer)
     demo_synth = synthesizer.Synthesizer(t_visualizer)
     demo_detection = object_detection.ObjectDetection(t_visualizer)
+    demo_scan = object_scan.ObjectScan(t_visualizer)
 
     # register demo contents
     t_view.insert_contents(demo_lines)
     t_view.insert_contents(demo_table)
     t_view.insert_contents(demo_synth)
     t_view.insert_contents(demo_detection)
+    t_view.insert_contents(demo_scan)
 
     # start gui
     t_view.mainloop()

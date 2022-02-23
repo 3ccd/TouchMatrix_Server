@@ -21,7 +21,7 @@ class Visualizer:
 
         self.draw_callback = None
 
-        self.object_image = np.zeros(self.frame_size, dtype=np.uint8)
+        self.object_image = np.zeros((self.frame_size[0], self.frame_size[1], 3), dtype=np.uint8)
 
         self.midi_out = None
         self.init_midi()
@@ -30,7 +30,8 @@ class Visualizer:
         self.draw_callback = cb
 
     def __call(self, result):
-        self.draw_callback(result)
+        if self.draw_callback is not None:
+            self.draw_callback(result)
 
     def run(self):
         while self.running:
@@ -83,10 +84,12 @@ class Visualizer:
             self.touch_pos = (x, y)
 
         if event == cv2.EVENT_RBUTTONDOWN:
-            self.content.touch_event(event)
+            if self.content is not None:
+                self.content.touch_event(event)
             self.is_touch = True
         if event == cv2.EVENT_RBUTTONUP:
-            self.content.touch_event(event)
+            if self.content is not None:
+                self.content.touch_event(event)
             self.is_touch = False
             self.prev_touch_pos = (-1, -1)
             self.touch_pos = (-1, -1)
