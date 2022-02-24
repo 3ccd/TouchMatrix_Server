@@ -64,6 +64,8 @@ class Visualizer:
 
     def set_content(self, content):
         self.content = content
+        if self.content is not None:
+            self.content.content_changed()
 
     def set_object_image(self, img):
         self.object_image = cv2.resize(img, dsize=(self.frame_size[1], self.frame_size[0]))
@@ -131,4 +133,7 @@ class DemoContents(metaclass=ABCMeta):
         pass
 
     def touch_up(self):
+        pass
+
+    def content_changed(self):
         pass

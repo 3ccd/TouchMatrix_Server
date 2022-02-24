@@ -6,7 +6,7 @@ import numpy as np
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 from matplotlib.figure import Figure
-import matplotlib.animation as animation
+
 
 class TmView(tk.Tk):
     def __init__(self, analyzer, server, visualizer, client):
@@ -25,12 +25,12 @@ class TmView(tk.Tk):
         self.demo_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
         self.figure_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
 
-        self.view_frame.grid(row=0, column=0, columnspan=4)
+        self.view_frame.grid(row=0, column=0, columnspan=5)
         self.control_frame.grid(row=1, column=0)
-        self.cal_frame.grid(row=1, column=1)
-        self.setting_frame.grid(row=1, column=2)
-        self.demo_frame.grid(row=1, column=3)
-        self.figure_frame.grid(row=2, column=0)
+        self.figure_frame.grid(row=1, column=1)
+        self.cal_frame.grid(row=1, column=2)
+        self.setting_frame.grid(row=1, column=3)
+        self.demo_frame.grid(row=1, column=4)
 
         self.canvas = tk.Canvas(self.view_frame, height=300, width=600)
         self.canvas.grid(row=0, column=0)
@@ -38,47 +38,47 @@ class TmView(tk.Tk):
         self.canvas2.grid(row=0, column=1)
 
         self.server_start_button = tk.Button(self.control_frame, text="Start Server", command=self.server.start_server,
-                                             width=40)
+                                             width=20)
         self.analyze_start_button = tk.Button(self.control_frame, text="Start Analyze", command=self.analyzer.start,
-                                              width=40)
-        self.read_button = tk.Button(self.control_frame, text="Read Image", command=self.__update_image, width=40)
+                                              width=20)
+        self.read_button = tk.Button(self.control_frame, text="Read Image", command=self.__update_image, width=20)
         self.cal_lower_button = tk.Button(self.cal_frame, text="Lower", command=self.analyzer.calibration_lower,
-                                          width=40)
+                                          width=20)
         self.cal_upper_button = tk.Button(self.cal_frame, text="Upper", command=self.analyzer.calibration_upper,
-                                          width=40)
-        self.save_cal_button = tk.Button(self.cal_frame, text="Save", command=self.analyzer.save_data, width=40)
-        self.load_cal_button = tk.Button(self.cal_frame, text="Load", command=self.analyzer.load_data, width=40)
+                                          width=20)
+        self.save_cal_button = tk.Button(self.cal_frame, text="Save", command=self.analyzer.save_data, width=20)
+        self.load_cal_button = tk.Button(self.cal_frame, text="Load", command=self.analyzer.load_data, width=20)
         self.linear_button = tk.Button(self.setting_frame, text="Linear", command=lambda: self.analyzer.set_curve(0),
-                                       width=40)
+                                       width=20)
         self.gamma_button = tk.Button(self.setting_frame, text="Gamma", command=lambda: self.analyzer.set_curve(1),
-                                      width=40)
+                                      width=20)
         self.s_button = tk.Button(self.setting_frame, text="S Curve", command=lambda: self.analyzer.set_curve(2),
-                                  width=40)
+                                  width=20)
         self.clip_button = tk.Button(self.setting_frame, text="Clip", command=lambda: self.analyzer.set_curve(3),
-                                     width=40)
+                                     width=20)
         threshold = tk.StringVar()
-        self.threshold_entry = tk.Entry(self.setting_frame, textvariable=threshold, width=40)
-        self.threshold_button = tk.Button(self.setting_frame, text="Set",
+        self.threshold_entry = tk.Entry(self.setting_frame, textvariable=threshold, width=20)
+        self.threshold_button = tk.Button(self.setting_frame, text="Set Threshold",
                                           command=lambda: self.analyzer.set_threshold(threshold.get()),
-                                          width=40)
+                                          width=20)
         grad_size = tk.StringVar()
         grad_sd = tk.StringVar()
-        self.gs_entry = tk.Entry(self.setting_frame, textvariable=grad_size, width=40)
-        self.gsd_entry = tk.Entry(self.setting_frame, textvariable=grad_sd, width=40)
-        self.grad_button = tk.Button(self.setting_frame, text="Grad Set",
+        self.gs_entry = tk.Entry(self.setting_frame, textvariable=grad_size, width=20)
+        self.gsd_entry = tk.Entry(self.setting_frame, textvariable=grad_sd, width=20)
+        self.grad_button = tk.Button(self.setting_frame, text="Set Grad",
                                      command=lambda: self.analyzer.set_grad(int(grad_size.get()), int(grad_sd.get())),
-                                     width=40)
+                                     width=20)
 
         c_param = tk.StringVar()
-        self.param_entry = tk.Entry(self.setting_frame, textvariable=c_param, width=40)
-        self.param_button = tk.Button(self.setting_frame, text="Param Set",
-                                      command=lambda: self.analyzer.set_curve_param(float(c_param.get())), width=40)
+        self.param_entry = tk.Entry(self.setting_frame, textvariable=c_param, width=20)
+        self.param_button = tk.Button(self.setting_frame, text="Set Curve",
+                                      command=lambda: self.analyzer.set_curve_param(float(c_param.get())), width=20)
 
         self.demo_list = tk.Listbox(self.demo_frame)
         self.demo_list.bind('<<ListboxSelect>>', self.__select_demo)
-        self.demo_start_button = tk.Button(self.demo_frame, text="START", command=self.visualizer.start, width=40)
+        self.demo_start_button = tk.Button(self.demo_frame, text="START", command=self.visualizer.start, width=20)
         self.client_start_button = tk.Button(self.demo_frame, text="Client Start", command=self.client.start_client
-                                             , width=40)
+                                             , width=20)
 
         self.server_start_button.pack()
         self.analyze_start_button.pack()
@@ -103,45 +103,61 @@ class TmView(tk.Tk):
         self.client_start_button.pack()
 
         self.contents = list()
+        self.figure_canvas = None
+        self.figure_length = 100
+        self.figure_data = np.zeros(self.figure_length, np.uint16)
         self.fig = None
-        self.line = None
-        self.anim = None
+        self.ax = None
 
         self.init_figure()
+        self.tim = 0
+        self.update_figure()
 
     def get_sensor_data(self, index):
         if self.analyzer.latest_data is None:
             return 0
         return self.analyzer.latest_data[index]
 
-    def set_sensor_data(self):
-        self.line.set_ydata(self.get_sensor_data(60))
-        return self.line
+    def add_sensor_data(self, data, data_array):
+        data_array = np.roll(data_array, -1)
+        data_array[self.figure_length - 1] = data
+        return data_array
+
+    def update_figure(self):
+        self.figure_data = self.add_sensor_data(self.get_sensor_data(60), self.figure_data)
+
+        self.ax.cla()
+        self.ax.grid()
+        self.ax.set_ylim([0, 65000])
+        self.ax.plot(self.figure_data)
+
+        self.figure_canvas.draw()
+
+        self.figure_frame.after(500, self.update_figure)
 
     def init_figure(self):
-        self.fig = Figure(figsize=(3,2))
-        canvas = FigureCanvasTkAgg(self.fig, master=self.figure_frame)
+        self.fig = Figure(figsize=(3, 2))
+        self.figure_canvas = FigureCanvasTkAgg(self.fig, master=self.figure_frame)
 
-        x = np.arange(0, 100, 1)
-        plt = self.fig.add_subplot(111)
-        plt.set_ylim([0, 65000])
-        self.line, = plt.plot(x, np.zeros(x.shape))
+        self.ax = self.fig.add_subplot(111)
+        self.ax.grid()
+        self.ax.set_ylim([0, 65000])
+        self.ax.plot(self.figure_data)
 
-        canvas.get_tk_widget().pack()
+        self.figure_canvas.get_tk_widget().pack()
 
     def insert_contents(self, content):
         self.contents.append(content)
         self.demo_list.insert('end', content.name)
 
     def __select_demo(self, event):
-        self.visualizer.content = self.contents[event.widget.curselection()[0]]
+        self.visualizer.set_content(self.contents[event.widget.curselection()[0]])
 
     def __update_image(self):
         if self.analyzer.disp_img is None:
             self.view_frame.after(100, self.__update_image)
             return
 
-        # tmp = (self.analyzer.disp_img * 255).astype(np.uint8)
         self.disp_image(self.analyzer.disp_img)
         self.disp2_image(self.analyzer.disp2_img)
 

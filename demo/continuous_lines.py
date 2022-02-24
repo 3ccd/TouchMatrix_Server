@@ -21,6 +21,9 @@ class ContinuousLines(DemoContents, ABC):
     def touch_down(self):
         pass
 
+    def content_changed(self):
+        self.clear_frame()
+
 
 if __name__ == "__main__":
     vis = Visualizer((320, 640))
