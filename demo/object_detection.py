@@ -11,7 +11,7 @@ class ObjectDetection(DemoContents, ABC):
         self.name = "Object Detection"
 
     def draw(self):
-        self.frame = self.visualizer.object_image
+        self.frame = self.visualizer.get_object_image(False)
 
     def touch_up(self):
         pass

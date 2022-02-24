@@ -2,6 +2,7 @@ import time
 from abc import ABC
 from demo.visualizer import DemoContents, Visualizer
 import cv2
+import numpy as np
 
 
 class ObjectScan(DemoContents, ABC):
@@ -11,14 +12,17 @@ class ObjectScan(DemoContents, ABC):
         self.name = "Object Scan"
 
         self.scan_line = 0
+        self.tmp_frame = np.zeros_like(self.frame)
 
     def draw(self):
-        self.frame = self.visualizer.object_image.copy()
+        obj_img = self.visualizer.get_object_image(False)
 
+        self.tmp_frame[:, self.scan_line:self.scan_line] = obj_img[:, self.scan_line:self.scan_line]
+        self.frame = self.tmp_frame.copy()
         cv2.line(self.frame, (self.scan_line, 0), (self.scan_line, self.visualizer.frame_size[0]), (0, 255, 0),
                  thickness=20)
 
-        self.scan_line = self.scan_line + 2
+        self.scan_line = self.scan_line + 1
         if self.scan_line > self.visualizer.frame_size[1]:
             self.scan_line = 0
 
