@@ -128,7 +128,7 @@ class TmView(tk.Tk):
 
         self.ax.cla()
         self.ax.grid()
-        self.ax.set_ylim([0, 65000])
+        self.ax.set_ylim([25000, 40000])
         self.ax.plot(self.figure_data)
 
         self.figure_canvas.draw()

@@ -1,7 +1,7 @@
 import random
 import time
 from abc import ABC
-from visualizer import DemoContents, Visualizer
+from demo.visualizer import DemoContents, Visualizer
 import cv2
 import numpy as np
 

@@ -261,12 +261,14 @@ if __name__ == "__main__":
     t_visualizer.set_callback(t_client.set_frame)
 
     # initialize demo contents instance
-    from demo import continuous_lines, turn_table, synthesizer, object_detection, object_scan
+    from demo import continuous_lines, turn_table, synthesizer, object_detection, object_scan, ocr, find_contours
     demo_lines = continuous_lines.ContinuousLines(t_visualizer)
     demo_table = turn_table.TurnTable(t_visualizer)
     demo_synth = synthesizer.Synthesizer(t_visualizer)
     demo_detection = object_detection.ObjectDetection(t_visualizer)
     demo_scan = object_scan.ObjectScan(t_visualizer)
+    demo_graphic = ocr.OCR(t_visualizer)
+    demo_contours = find_contours.FindContours(t_visualizer)
 
     # register demo contents
     t_view.insert_contents(demo_lines)
@@ -274,6 +276,8 @@ if __name__ == "__main__":
     t_view.insert_contents(demo_synth)
     t_view.insert_contents(demo_detection)
     t_view.insert_contents(demo_scan)
+    t_view.insert_contents(demo_graphic)
+    t_view.insert_contents(demo_contours)
 
     # start gui
     t_view.mainloop()
