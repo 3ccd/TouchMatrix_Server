@@ -13,11 +13,13 @@ class FindContours(DemoContents, ABC):
         self.name = "Find Contours"
 
     def draw(self):
+        self.clear_frame()
+
         obj_img = self.visualizer.get_object_image(True)
         contours, hierarchy = cv2.findContours(
             obj_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours_img = np.zeros_like(obj_img)
-        cv2.drawContours(contours_img, contours, -1, color=(0, 0, 255), thickness=10)
+        cv2.drawContours(contours_img, contours, -1, color=(0, 0, 255), thickness=2)
 
         self.frame = cv2.resize(contours_img, dsize=(self.visualizer.frame_size[1], self.visualizer.frame_size[0]))
 

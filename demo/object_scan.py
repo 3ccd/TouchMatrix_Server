@@ -17,7 +17,7 @@ class ObjectScan(DemoContents, ABC):
     def draw(self):
         obj_img = self.visualizer.get_object_image(False)
 
-        self.tmp_frame[:, self.scan_line:self.scan_line] = obj_img[:, self.scan_line:self.scan_line]
+        self.tmp_frame[:, self.scan_line:self.scan_line+1, 2] = obj_img[:, self.scan_line:self.scan_line+1, 2]
         self.frame = self.tmp_frame.copy()
         cv2.line(self.frame, (self.scan_line, 0), (self.scan_line, self.visualizer.frame_size[0]), (0, 255, 0),
                  thickness=20)

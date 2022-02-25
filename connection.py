@@ -80,18 +80,21 @@ class FrameTransmitter:
         if ch == 'b':
             return self.frame[:, :, 2].flatten().tolist()
 
+    def send_message(self, address, x, y):
+        self.client.send_message(address, [x, y])
+
     def __transmit_frame(self):
         while self.running:
             if self.frame_status is False:
                 time.sleep(1)       # wait for frame data
                 continue
 
-            self.client.send_message("/frame/red/upper", self.__get_frame('r')[:1024])
+            """self.client.send_message("/frame/red/upper", self.__get_frame('r')[:1024])
             self.client.send_message("/frame/red/lower", self.__get_frame('r')[1024:])
             self.client.send_message("/frame/green/upper", self.__get_frame('g')[:1024])
             self.client.send_message("/frame/green/lower", self.__get_frame('g')[1024:])
             self.client.send_message("/frame/blue/upper", self.__get_frame('b')[:1024])
-            self.client.send_message("/frame/blue/lower", self.__get_frame('b')[1024:])
+            self.client.send_message("/frame/blue/lower", self.__get_frame('b')[1024:])"""
             time.sleep(0.1)
 
     def start_client(self):

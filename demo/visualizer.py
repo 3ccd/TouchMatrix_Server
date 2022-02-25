@@ -68,13 +68,10 @@ class Visualizer:
             self.content.content_changed()
 
     def set_object_image(self, img):
-        self.object_image = img
+        self.object_image = cv2.resize(img, dsize=(self.frame_size[1], self.frame_size[0]))
 
     def get_object_image(self, real_size):
-        if real_size:
-            return self.object_image
-        else:
-            return cv2.resize(self.object_image, dsize=(self.frame_size[1], self.frame_size[0]))
+        return self.object_image
 
     def touch_event_from_analyzer(self, event, x, y):
         x_s = 0
