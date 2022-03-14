@@ -22,10 +22,10 @@ class FindContours(DemoContents, ABC):
 
         y = int(self.visualizer.frame_size[0] / 2)
         if self.status == 1:
-            cv2.arrowedLine(self.frame, (100, y), (500, y), (255, 255, 255), thickness=20,
+            cv2.arrowedLine(self.frame, (500, y), (100, y), (255, 255, 255), thickness=20,
                             tipLength=0.5)
         elif self.status == 2:
-            cv2.arrowedLine(self.frame, (500, y), (100, y), (255, 255, 255), thickness=20,
+            cv2.arrowedLine(self.frame, (100, y), (500, y), (255, 255, 255), thickness=20,
                             tipLength=0.5)
 
         control = self.touch_rec[0] - self.visualizer.touch_pos[0]
@@ -44,6 +44,8 @@ class FindContours(DemoContents, ABC):
 
     def touch_down(self):
         self.touch_rec = self.visualizer.touch_pos
+        self.status = 0
+        print("down")
 
     def touch_up(self):
         print("stop")

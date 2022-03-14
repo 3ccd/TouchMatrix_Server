@@ -31,7 +31,8 @@ class Visualizer:
 
     def __call(self, result):
         if self.draw_callback is not None:
-            self.draw_callback(result)
+            if self.content.frame_available is True:
+                self.draw_callback(result)
 
     def run(self):
         while self.running:
@@ -116,6 +117,8 @@ class DemoContents(metaclass=ABCMeta):
         self.visualizer = visualizer
         self.frame = None
         self.name = ""
+
+        self.frame_available = True
 
         self.clear_frame()
 

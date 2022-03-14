@@ -14,6 +14,8 @@ class TouchSend(DemoContents, ABC):
         self.name = "Touch Send"
         self.client = client
 
+        self.frame_available = False
+
     def draw(self):
         if self.visualizer.is_touch:
             self.client.send_message("/touch", int(self.visualizer.touch_pos[0] / 10), int(self.visualizer.touch_pos[1] / 10))

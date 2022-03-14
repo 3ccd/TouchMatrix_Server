@@ -42,6 +42,7 @@ class Analyzer(threading.Thread):
         self.plot_img = None
         self.disp_img = None
         self.disp2_img = None
+        self.disp3_img = None
 
         self.set_grad(self.grad_size, 16)
 
@@ -193,7 +194,7 @@ class Analyzer(threading.Thread):
         offset[offset > self.range] = self.range[offset > self.range]
 
         # normalize
-        calc = (offset / self.range)
+        calc = (offset / self.range) + 0.02
         calc[calc > 1.0] = 1.0
 
         # tone curve
@@ -226,10 +227,10 @@ class Analyzer(threading.Thread):
         retval, labels, stats, centroids = cv2.connectedComponentsWithStats(tmp8bit)        # Labeling
 
         if len(centroids) > 1:
+            self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[1])
             if self.touch_status is False:
                 self._call_object_event(cv2.EVENT_RBUTTONDOWN)
                 self.touch_status = True
-            self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[1])
         else:
             if self.touch_status is True:
                 self._call_object_event(cv2.EVENT_RBUTTONUP)
@@ -240,6 +241,7 @@ class Analyzer(threading.Thread):
 
         self.disp_img = color_labels
         self.disp2_img = (self.plot_img * 255).astype(np.uint8)
+        self.disp3_img = cv2.resize(calc * 255, (self.plot_size[1], self.plot_size[0]), interpolation=cv2.INTER_NEAREST)
 
 
 if __name__ == "__main__":
@@ -280,6 +282,9 @@ if __name__ == "__main__":
     t_view.insert_contents(demo_graphic)
     t_view.insert_contents(demo_contours)
     t_view.insert_contents(demo_touch)
+
+    t_server.start_server()
+    t_analyzer.start()
 
     # start gui
     t_view.mainloop()

@@ -37,11 +37,7 @@ class TmView(tk.Tk):
         self.canvas2 = tk.Canvas(self.view_frame, height=300, width=600)
         self.canvas2.grid(row=0, column=1)
 
-        self.server_start_button = tk.Button(self.control_frame, text="Start Server", command=self.server.start_server,
-                                             width=20)
-        self.analyze_start_button = tk.Button(self.control_frame, text="Start Analyze", command=self.analyzer.start,
-                                              width=20)
-        self.read_button = tk.Button(self.control_frame, text="Read Image", command=self.__update_image, width=20)
+        self.change_button = tk.Button(self.control_frame, text="Change Image", command=self._change_image, width=20)
         self.cal_lower_button = tk.Button(self.cal_frame, text="Lower", command=self.analyzer.calibration_lower,
                                           width=20)
         self.cal_upper_button = tk.Button(self.cal_frame, text="Upper", command=self.analyzer.calibration_upper,
@@ -80,13 +76,11 @@ class TmView(tk.Tk):
         self.client_start_button = tk.Button(self.demo_frame, text="Client Start", command=self.client.start_client
                                              , width=20)
 
-        self.server_start_button.pack()
-        self.analyze_start_button.pack()
+        self.change_button.pack()
         self.cal_lower_button.pack()
         self.cal_upper_button.pack()
         self.save_cal_button.pack()
         self.load_cal_button.pack()
-        self.read_button.pack()
         self.linear_button.pack()
         self.gamma_button.pack()
         self.s_button.pack()
@@ -102,6 +96,8 @@ class TmView(tk.Tk):
         self.demo_start_button.pack()
         self.client_start_button.pack()
 
+        self.img_type = 0
+
         self.contents = list()
         self.figure_canvas = None
         self.figure_length = 100
@@ -112,6 +108,14 @@ class TmView(tk.Tk):
         self.init_figure()
         self.tim = 0
         self.update_figure()
+
+        self.__update_image()
+
+    def _change_image(self):
+        if self.img_type == 0:
+            self.img_type = 1
+        else:
+            self.img_type = 0
 
     def get_sensor_data(self, index):
         if self.analyzer.latest_data is None:
@@ -159,7 +163,10 @@ class TmView(tk.Tk):
             return
 
         self.disp_image(self.analyzer.disp_img)
-        self.disp2_image(self.analyzer.disp2_img)
+        if self.img_type == 0:
+            self.disp2_image(self.analyzer.disp2_img)
+        else:
+            self.disp2_image(self.analyzer.disp3_img)
 
         self.view_frame.after(20, self.__update_image)
 

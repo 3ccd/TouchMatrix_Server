@@ -65,7 +65,9 @@ class FrameTransmitter:
         self.frame_status = False
         self.frame = np.zeros((32, 64, 3), dtype=np.uint8)
         self.running = False
-        self.client = None
+        self.client = udp_client.SimpleUDPClient(self.ip, self.port)
+
+        self.lock = threading.Lock()
 
     def set_frame(self, frame):
         self.frame = frame.copy()
@@ -81,7 +83,9 @@ class FrameTransmitter:
             return self.frame[:, :, 2].flatten().tolist()
 
     def send_message(self, address, x, y):
+        self.lock.acquire()
         self.client.send_message(address, [x, y])
+        self.lock.release()
 
     def __transmit_frame(self):
         while self.running:
@@ -89,18 +93,19 @@ class FrameTransmitter:
                 time.sleep(1)       # wait for frame data
                 continue
 
-            """self.client.send_message("/frame/red/upper", self.__get_frame('r')[:1024])
+            self.lock.acquire()
+            self.client.send_message("/frame/red/upper", self.__get_frame('r')[:1024])
             self.client.send_message("/frame/red/lower", self.__get_frame('r')[1024:])
             self.client.send_message("/frame/green/upper", self.__get_frame('g')[:1024])
             self.client.send_message("/frame/green/lower", self.__get_frame('g')[1024:])
             self.client.send_message("/frame/blue/upper", self.__get_frame('b')[:1024])
-            self.client.send_message("/frame/blue/lower", self.__get_frame('b')[1024:])"""
-            time.sleep(0.1)
+            self.client.send_message("/frame/blue/lower", self.__get_frame('b')[1024:])
+            self.lock.release()
+            time.sleep(0.05)
 
     def start_client(self):
         print("Starting Client")
         self.running = True
-        self.client = udp_client.SimpleUDPClient(self.ip, self.port)
         print("Sending on {}".format(self.ip))
         thread = threading.Thread(target=self.__transmit_frame)
         thread.start()
