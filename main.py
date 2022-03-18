@@ -283,7 +283,6 @@ if __name__ == "__main__":
     t_view.insert_contents(demo_contours)
     t_view.insert_contents(demo_touch)
 
-    t_server.start_server()
     t_analyzer.start()
 
     # start gui

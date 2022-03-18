@@ -47,8 +47,12 @@ class OSCServer:
 
     def start_server(self):
         print("Starting Server")
-        self.server = osc_server.ThreadingOSCUDPServer(
-            (self.ip, self.port), self.dispatcher)
+        try:
+            self.server = osc_server.ThreadingOSCUDPServer(
+                (self.ip, self.port), self.dispatcher)
+        except OSError:
+            print("Error : Wrong Address")
+            return
         print("Serving on {}".format(self.server.server_address))
         thread = threading.Thread(target=self.server.serve_forever)
         thread.start()
