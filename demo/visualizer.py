@@ -4,8 +4,6 @@ import threading
 import numpy as np
 import cv2
 
-import pygame.midi as midi
-
 
 class Visualizer:
 
@@ -101,14 +99,7 @@ class Visualizer:
             self.touch_pos = (-1, -1)
 
     def init_midi(self):
-        midi.init()
-        i_num = midi.get_count()
-        for i in range(i_num):
-            print(i)
-            print(midi.get_device_info(i))
-
-        self.midi_out = midi.Output(midi.get_default_output_id())
-        self.midi_out.set_instrument(40)
+        pass
 
 
 class DemoContents(metaclass=ABCMeta):

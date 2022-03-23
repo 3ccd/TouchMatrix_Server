@@ -96,6 +96,8 @@ class TmView(tk.Tk):
         target_ip = tk.StringVar()
         local_ip_entry = tk.Entry(control_frame, textvariable=local_ip, width=20)
         target_ip_entry = tk.Entry(control_frame, textvariable=target_ip, width=20)
+        local_ip_entry.bind('<Return>', lambda: self.server.set_addr(local_ip.get(), 9000))
+        target_ip_entry.bind('<Return>', lambda: self.client.set_addr(target_ip.get(), 7000))
 
         lp_label.grid(row=0, column=0)
         local_ip_entry.grid(row=0, column=1)

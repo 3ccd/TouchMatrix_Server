@@ -77,6 +77,10 @@ class FrameTransmitter:
         self.frame = frame.copy()
         self.frame_status = True
 
+    def set_addr(self, ip, port):
+        self.ip = ip
+        self.port = port
+
     def __get_frame(self, ch):
         self.frame_status = False
         if ch == 'r':
@@ -110,6 +114,7 @@ class FrameTransmitter:
     def start_client(self):
         print("Starting Client")
         self.running = True
+        self.client = udp_client.SimpleUDPClient(self.ip, self.port)
         print("Sending on {}".format(self.ip))
         thread = threading.Thread(target=self.__transmit_frame)
         thread.start()
