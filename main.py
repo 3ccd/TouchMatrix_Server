@@ -36,6 +36,7 @@ class Analyzer(threading.Thread):
 
         self.plot_size = (160, 320)
         self.grad_size = 100
+        self.sd = 16
         self.over_scan = 60
 
         self.grad_img = None
@@ -85,6 +86,7 @@ class Analyzer(threading.Thread):
 
     def set_grad(self, size, sd):
         self.grad_size = size
+        self.sd = sd
         self.grad_img = self.__gauss2d(size, sd)
 
     def __insert_led(self):
@@ -263,10 +265,10 @@ if __name__ == "__main__":
     t_visualizer.set_callback(t_client.set_frame)
 
     # initialize demo contents instance
-    from demo import continuous_lines, turn_table, synthesizer, object_detection, object_scan, ocr, touch_send
+    from demo import continuous_lines, turn_table, object_detection, object_scan, ocr, touch_send
     demo_lines = continuous_lines.ContinuousLines(t_visualizer)
     demo_table = turn_table.TurnTable(t_visualizer)
-    demo_synth = synthesizer.Synthesizer(t_visualizer)
+    # demo_synth = synthesizer.Synthesizer(t_visualizer)
     demo_detection = object_detection.ObjectDetection(t_visualizer)
     demo_scan = object_scan.ObjectScan(t_visualizer)
     demo_graphic = ocr.OCR(t_visualizer)
@@ -276,7 +278,7 @@ if __name__ == "__main__":
     # register demo contents
     t_view.insert_contents(demo_lines)
     t_view.insert_contents(demo_table)
-    t_view.insert_contents(demo_synth)
+    # t_view.insert_contents(demo_synth)
     t_view.insert_contents(demo_detection)
     t_view.insert_contents(demo_scan)
     t_view.insert_contents(demo_graphic)

@@ -38,29 +38,32 @@ class TmView(tk.Tk):
         self.gamma_button = tk.Button(self.setting_frame, text="Gamma", command=lambda: self.analyzer.set_curve(1),
                                       width=20)
 
-        threshold = tk.StringVar()
-        self.threshold_entry = tk.Entry(self.setting_frame, textvariable=threshold, width=20)
-        self.threshold_entry.bind('<Return>', lambda: self.analyzer.set_threshold(threshold.get()))
-        grad_size = tk.StringVar()
-        grad_sd = tk.StringVar()
-        self.gs_entry = tk.Entry(self.setting_frame, textvariable=grad_size, width=20)
-        self.gs_entry.bind('<Return>', lambda: self.analyzer.set_grad(int(grad_size.get()), int(grad_sd.get())))
-        self.gsd_entry = tk.Entry(self.setting_frame, textvariable=grad_sd, width=20)
-        self.gsd_entry.bind('<Return>', lambda: self.analyzer.set_grad(int(grad_size.get()), int(grad_sd.get())))
+        threshold_label = tk.Label(self.setting_frame, text="Threshold")
+        grad_label = tk.Label(self.setting_frame, text="SD")
+        gamma_label = tk.Label(self.setting_frame, text="Gamma")
 
-        c_param = tk.StringVar()
-        self.param_entry = tk.Entry(self.setting_frame, textvariable=c_param, width=20)
+        threshold = tk.StringVar(value=self.analyzer.threshold)
+        self.threshold_entry = tk.Entry(self.setting_frame, textvariable=threshold, width=10)
+        self.threshold_entry.bind('<Return>', lambda: self.analyzer.set_threshold(threshold.get()))
+        grad_sd = tk.StringVar(value=self.analyzer.sd)
+        self.gsd_entry = tk.Entry(self.setting_frame, textvariable=grad_sd, width=10)
+        self.gsd_entry.bind('<Return>', lambda: self.analyzer.set_grad(100, int(grad_sd.get())))
+
+        c_param = tk.StringVar(value=self.analyzer.gamma)
+        self.param_entry = tk.Entry(self.setting_frame, textvariable=c_param, width=10)
         self.param_entry.bind('<Return>', lambda: self.analyzer.set_curve_param(float(c_param.get())))
 
         self.demo_list = tk.Listbox(self.demo_frame)
         self.demo_list.bind('<<ListboxSelect>>', self.__select_demo)
 
-        self.linear_button.pack()
-        self.gamma_button.pack()
-        self.threshold_entry.pack()
-        self.gs_entry.pack()
-        self.gsd_entry.pack()
-        self.param_entry.pack()
+        self.linear_button.grid(row=0, column=0, columnspan=2)
+        self.gamma_button.grid(row=1, column=0, columnspan=2)
+        threshold_label.grid(row=2, column=0)
+        self.threshold_entry.grid(row=2, column=1)
+        gamma_label.grid(row=3, column=0)
+        self.param_entry.grid(row=3, column=1)
+        grad_label.grid(row=4, column=0)
+        self.gsd_entry.grid(row=4, column=1)
 
         self.demo_list.pack()
 
@@ -92,10 +95,10 @@ class TmView(tk.Tk):
 
         lp_label = tk.Label(control_frame, text="Local IP Address")
         tp_label = tk.Label(control_frame, text="Target IP Address")
-        local_ip = tk.StringVar()
-        target_ip = tk.StringVar()
-        local_ip_entry = tk.Entry(control_frame, textvariable=local_ip, width=20)
-        target_ip_entry = tk.Entry(control_frame, textvariable=target_ip, width=20)
+        local_ip = tk.StringVar(value=self.server.ip)
+        target_ip = tk.StringVar(value=self.client.ip)
+        local_ip_entry = tk.Entry(control_frame, textvariable=local_ip, width=15)
+        target_ip_entry = tk.Entry(control_frame, textvariable=target_ip, width=15)
         local_ip_entry.bind('<Return>', lambda: self.server.set_addr(local_ip.get(), 9000))
         target_ip_entry.bind('<Return>', lambda: self.client.set_addr(target_ip.get(), 7000))
 
@@ -148,6 +151,14 @@ class TmView(tk.Tk):
             return 0
         return self.analyzer.latest_data[index]
 
+    def get_calibrate_data(self, index):
+        if self.analyzer.cal_min is None or self.analyzer.cal_max is None:
+            return 0, 60000
+        cal_min = self.analyzer.cal_min[index]
+        cal_max = self.analyzer.cal_max[index]
+
+        return cal_min, cal_max
+
     def add_sensor_data(self, data, data_array):
         data_array = np.roll(data_array, -1)
         data_array[self.figure_length - 1] = data
@@ -155,10 +166,11 @@ class TmView(tk.Tk):
 
     def update_figure(self):
         self.figure_data = self.add_sensor_data(self.get_sensor_data(60), self.figure_data)
+        fr_min, fr_max = self.get_calibrate_data(60)
 
         self.ax.cla()
         self.ax.grid()
-        self.ax.set_ylim([25000, 40000])
+        self.ax.set_ylim([fr_min, fr_max])
         self.ax.plot(self.figure_data)
 
         self.figure_canvas.draw()
