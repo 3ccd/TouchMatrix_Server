@@ -3,9 +3,22 @@ from PIL import Image, ImageTk, ImageOps
 
 import numpy as np
 
-from matplotlib.backends.backend_tkagg import (
-    FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+
+import sys
+
+
+class StdoutRedirector(object):
+    def __init__(self, text_widget):
+        self.text_space = text_widget
+
+    def write(self, string):
+        self.text_space.insert('end', string)
+        self.text_space.see('end')
+
+    def flush(self, *args):
+        pass
 
 
 class TmView(tk.Tk):
@@ -18,54 +31,21 @@ class TmView(tk.Tk):
         super().__init__()
         self.title("TouchMatrix Viewer")
 
-        self.setting_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
-        self.demo_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
+        self.setting_frame = None
+        self.demo_frame = None
         self.view_frame = None
         self.figure_frame = None
 
         self.canvas = None
         self.canvas2 = None
+        self.demo_list = None
 
         self.init_control_frame()
+        self.init_setting_frame()
         self.init_view_frame()
         self.init_cal_frame()
-
-        self.setting_frame.grid(row=1, column=3)
-        self.demo_frame.grid(row=1, column=4)
-
-        self.linear_button = tk.Button(self.setting_frame, text="Linear", command=lambda: self.analyzer.set_curve(0),
-                                       width=20)
-        self.gamma_button = tk.Button(self.setting_frame, text="Gamma", command=lambda: self.analyzer.set_curve(1),
-                                      width=20)
-
-        threshold_label = tk.Label(self.setting_frame, text="Threshold")
-        grad_label = tk.Label(self.setting_frame, text="SD")
-        gamma_label = tk.Label(self.setting_frame, text="Gamma")
-
-        threshold = tk.StringVar(value=self.analyzer.threshold)
-        self.threshold_entry = tk.Entry(self.setting_frame, textvariable=threshold, width=10)
-        self.threshold_entry.bind('<Return>', lambda: self.analyzer.set_threshold(threshold.get()))
-        grad_sd = tk.StringVar(value=self.analyzer.sd)
-        self.gsd_entry = tk.Entry(self.setting_frame, textvariable=grad_sd, width=10)
-        self.gsd_entry.bind('<Return>', lambda: self.analyzer.set_grad(100, int(grad_sd.get())))
-
-        c_param = tk.StringVar(value=self.analyzer.gamma)
-        self.param_entry = tk.Entry(self.setting_frame, textvariable=c_param, width=10)
-        self.param_entry.bind('<Return>', lambda: self.analyzer.set_curve_param(float(c_param.get())))
-
-        self.demo_list = tk.Listbox(self.demo_frame)
-        self.demo_list.bind('<<ListboxSelect>>', self.__select_demo)
-
-        self.linear_button.grid(row=0, column=0, columnspan=2)
-        self.gamma_button.grid(row=1, column=0, columnspan=2)
-        threshold_label.grid(row=2, column=0)
-        self.threshold_entry.grid(row=2, column=1)
-        gamma_label.grid(row=3, column=0)
-        self.param_entry.grid(row=3, column=1)
-        grad_label.grid(row=4, column=0)
-        self.gsd_entry.grid(row=4, column=1)
-
-        self.demo_list.pack()
+        self.init_demo_frame()
+        self.init_stdout_frame()
 
         self.img_type = 0
 
@@ -80,14 +60,63 @@ class TmView(tk.Tk):
         self.tim = 0
         self.update_figure()
 
+        self.blank_image = np.zeros((160, 320, 3), dtype=np.uint8)
+
+        self.update()
         self.__update_image()
 
     def test(self, *args):
         print('changed')
 
+    def init_demo_frame(self):
+        demo_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
+        demo_frame.grid(row=1, column=4, sticky=tk.N + tk.SW)
+        self.demo_list = tk.Listbox(demo_frame, width=40)
+        self.demo_list.bind('<<ListboxSelect>>', self.__select_demo)
+        self.demo_list.pack()
+
+    def init_stdout_frame(self):
+        stdout_frame = tk.Frame(self, pady=10, padx=10)
+        stdout_frame.grid(row=3, column=0, columnspan=5, sticky=tk.W + tk.SE)
+
+        stdout_area = tk.Text(stdout_frame, height=7, width=150)
+        stdout_area.pack(fill='x')
+        sys.stdout = StdoutRedirector(stdout_area)
+
+    def init_setting_frame(self):
+        setting_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
+        setting_frame.grid(row=1, column=3, sticky=tk.N + tk.SW)
+
+        linear_button = tk.Button(setting_frame, text="Linear", command=lambda: self.analyzer.set_curve(0), width=20)
+        gamma_button = tk.Button(setting_frame, text="Gamma", command=lambda: self.analyzer.set_curve(1), width=20)
+
+        threshold_label = tk.Label(setting_frame, text="Threshold")
+        grad_label = tk.Label(setting_frame, text="SD")
+        gamma_label = tk.Label(setting_frame, text="Gamma")
+
+        threshold = tk.StringVar(value=self.analyzer.threshold)
+        threshold_entry = tk.Entry(setting_frame, textvariable=threshold, width=10)
+        threshold_entry.bind('<Return>', lambda arg: self.analyzer.set_threshold(threshold.get()))
+        grad_sd = tk.StringVar(value=self.analyzer.sd)
+        gsd_entry = tk.Entry(setting_frame, textvariable=grad_sd, width=10)
+        gsd_entry.bind('<Return>', lambda arg: self.analyzer.set_grad(100, int(grad_sd.get())))
+
+        c_param = tk.StringVar(value=self.analyzer.gamma)
+        param_entry = tk.Entry(setting_frame, textvariable=c_param, width=10)
+        param_entry.bind('<Return>', lambda arg: self.analyzer.set_curve_param(float(c_param.get())))
+
+        linear_button.grid(row=0, column=0, columnspan=2)
+        gamma_button.grid(row=1, column=0, columnspan=2)
+        threshold_label.grid(row=2, column=0)
+        threshold_entry.grid(row=2, column=1)
+        gamma_label.grid(row=3, column=0)
+        param_entry.grid(row=3, column=1)
+        grad_label.grid(row=4, column=0)
+        gsd_entry.grid(row=4, column=1)
+
     def init_control_frame(self):
         control_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
-        control_frame.grid(row=1, column=0)
+        control_frame.grid(row=1, column=0, sticky=tk.N + tk.SE)
 
         start_button = tk.Button(control_frame, text="Start Receiving", command=self.server.start_server, width=20)
         client_start_button = tk.Button(control_frame, text="Start Sending", command=self.client.start_client,
@@ -99,8 +128,8 @@ class TmView(tk.Tk):
         target_ip = tk.StringVar(value=self.client.ip)
         local_ip_entry = tk.Entry(control_frame, textvariable=local_ip, width=15)
         target_ip_entry = tk.Entry(control_frame, textvariable=target_ip, width=15)
-        local_ip_entry.bind('<Return>', lambda: self.server.set_addr(local_ip.get(), 9000))
-        target_ip_entry.bind('<Return>', lambda: self.client.set_addr(target_ip.get(), 7000))
+        local_ip_entry.bind('<Return>', lambda arg: self.server.set_addr(local_ip.get(), 9000))
+        target_ip_entry.bind('<Return>', lambda arg: self.client.set_addr(target_ip.get(), 7000))
 
         lp_label.grid(row=0, column=0)
         local_ip_entry.grid(row=0, column=1)
@@ -111,7 +140,7 @@ class TmView(tk.Tk):
         client_start_button.grid(row=3, column=0, columnspan=2, pady=5)
 
     def init_view_frame(self):
-        self.view_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
+        self.view_frame = tk.Frame(self, pady=10, padx=10)
         self.view_frame.grid(row=0, column=0, columnspan=5)
 
         self.canvas = tk.Canvas(self.view_frame, height=300, width=600)
@@ -121,24 +150,24 @@ class TmView(tk.Tk):
         self.canvas2.grid(row=0, column=1)
 
     def init_cal_frame(self):
-        cal_frame = tk.Frame(self, padx=10, relief=tk.GROOVE, bd=2)
-        cal_frame.grid(row=1, column=2)
+        cal_frame = tk.Frame(self, padx=10, pady=10, relief=tk.GROOVE, bd=2)
+        cal_frame.grid(row=1, column=2, sticky=tk.N + tk.SW)
 
-        self.figure_frame = tk.Frame(cal_frame, pady=10, padx=10, bd=2, relief=tk.GROOVE)
-        control_frame = tk.Frame(cal_frame, pady=10, padx=10, bd=2)
+        self.figure_frame = tk.Frame(cal_frame, pady=10, padx=10)
+        control_frame = tk.Frame(cal_frame)
         cal_lower_button = tk.Button(control_frame, text="Lower", command=self.analyzer.calibration_lower, width=20)
         cal_upper_button = tk.Button(control_frame, text="Upper", command=self.analyzer.calibration_upper, width=20)
         save_cal_button = tk.Button(control_frame, text="Save", command=self.analyzer.save_data, width=20)
         load_cal_button = tk.Button(control_frame, text="Load", command=self.analyzer.load_data, width=20)
         change_button = tk.Button(control_frame, text="Toggle Image", command=self._change_image, width=20)
 
-        self.figure_frame.grid(row=0, column=0)
-        control_frame.grid(row=0, column=1)
-        cal_lower_button.pack(fill=tk.BOTH, ipady=5, ipadx=10, pady=5, padx=10)
-        cal_upper_button.pack(fill=tk.BOTH, ipady=5, ipadx=10, pady=5, padx=10)
-        save_cal_button.pack(fill=tk.BOTH, ipady=5, ipadx=10, pady=5, padx=10)
-        load_cal_button.pack(fill=tk.BOTH, ipady=5, ipadx=10, pady=5, padx=10)
-        change_button.pack(fill=tk.BOTH, ipady=5, ipadx=10, pady=5, padx=10)
+        self.figure_frame.grid(row=0, column=0, sticky=tk.N)
+        control_frame.grid(row=0, column=1, sticky=tk.N)
+        cal_lower_button.pack()
+        cal_upper_button.pack()
+        save_cal_button.pack()
+        load_cal_button.pack()
+        change_button.pack()
 
     def _change_image(self):
         if self.img_type == 0:
@@ -199,6 +228,8 @@ class TmView(tk.Tk):
 
     def __update_image(self):
         if self.analyzer.disp_img is None:
+            self.disp_image(self.blank_image)
+            self.disp2_image(self.blank_image)
             self.view_frame.after(1000, self.__update_image)
             return
 

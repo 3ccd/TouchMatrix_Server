@@ -21,9 +21,6 @@ class Visualizer:
 
         self.object_image = np.zeros((self.frame_size[0], self.frame_size[1], 3), dtype=np.uint8)
 
-        self.midi_out = None
-        self.init_midi()
-
     def set_callback(self, cb):
         self.draw_callback = cb
 
@@ -97,9 +94,6 @@ class Visualizer:
             self.is_touch = False
             self.prev_touch_pos = (-1, -1)
             self.touch_pos = (-1, -1)
-
-    def init_midi(self):
-        pass
 
 
 class DemoContents(metaclass=ABCMeta):

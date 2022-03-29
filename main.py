@@ -23,6 +23,8 @@ class Analyzer(threading.Thread):
 
         self.__tm_frame = tm
 
+        self.running = True
+
         self.cal_state = 0
         self.cal_max = None
         self.cal_min = None
@@ -52,6 +54,13 @@ class Analyzer(threading.Thread):
         self.touch_status = False
 
         self.latest_data = None
+
+    def __del__(self):
+        self.stop()
+
+    def stop(self):
+        self.running = False
+        self.join()
 
     def set_touch_callback(self, callback):
         self.touch_callback = callback
@@ -95,11 +104,22 @@ class Analyzer(threading.Thread):
             pos.extend(range((i % 2) + (i * 11), (i + 1) * 11 + (i % 2), 1))
         return pos
 
+    def is_calibration_available(self):
+        if self.cal_min is None:
+            return False
+        if self.cal_max is None:
+            return False
+        return True
+
     def set_curve(self, c_type):
         self.curve_type = c_type
 
     def save_data(self):
-        np.savez("./cal_data", self.cal_min, self.cal_max, self.range)
+        if self.is_calibration_available():
+            np.savez("./cal_data", self.cal_min, self.cal_max, self.range)
+            print('Info: Calibration data is saved as "cal_data.npz"')
+        else:
+            print('Error: Calibration required')
 
     def load_data(self):
         data = None
@@ -110,18 +130,22 @@ class Analyzer(threading.Thread):
             print('Calibration file not found')
             return
 
+        print('Info: Calibration data loaded')
         print(data.files)
         self.cal_min = data['arr_0']
         self.cal_max = data['arr_1']
         self.range = data['arr_2']
 
     def calibration_lower(self):
+        if self.__tm_frame.n_array is None:
+            print('Error: No Sensor data available (Check the connection to the Raspberry Pi)')
+            return
         self.cal_min = self.__tm_frame.n_array
         print(self.cal_min)
 
     def calibration_upper(self):
         if self.cal_min is None:
-            print('need lower calibration')
+            print('Error: Lower Calibration required')
             return
 
         self.cal_max = self.__tm_frame.n_array
@@ -138,7 +162,7 @@ class Analyzer(threading.Thread):
         self.gamma = gamma
 
     def __call(self):
-        while True:
+        while self.running:
             self.__loop()
             time.sleep(0.02)
 
@@ -268,24 +292,24 @@ if __name__ == "__main__":
     from demo import continuous_lines, turn_table, object_detection, object_scan, ocr, touch_send
     demo_lines = continuous_lines.ContinuousLines(t_visualizer)
     demo_table = turn_table.TurnTable(t_visualizer)
-    # demo_synth = synthesizer.Synthesizer(t_visualizer)
     demo_detection = object_detection.ObjectDetection(t_visualizer)
     demo_scan = object_scan.ObjectScan(t_visualizer)
     demo_graphic = ocr.OCR(t_visualizer)
-    # demo_contours = find_contours.FindContours(t_visualizer)
     demo_touch = touch_send.TouchSend(t_visualizer, t_client)
 
     # register demo contents
     t_view.insert_contents(demo_lines)
     t_view.insert_contents(demo_table)
-    # t_view.insert_contents(demo_synth)
     t_view.insert_contents(demo_detection)
     t_view.insert_contents(demo_scan)
     t_view.insert_contents(demo_graphic)
-    # t_view.insert_contents(demo_contours)
     t_view.insert_contents(demo_touch)
 
     t_analyzer.start()
 
     # start gui
     t_view.mainloop()
+
+    t_analyzer.stop()
+    t_server.stop()
+    t_client.stop()

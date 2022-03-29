@@ -32,6 +32,8 @@ class OSCServer:
         self.server = None
         self.buffer = tm_frame
 
+        self.running = False
+
         # listen to addresses and print changes in values
         self.dispatcher = dispatcher.Dispatcher()
         self.dispatcher.map("/sensor_value", self.set_buffer)
@@ -56,9 +58,11 @@ class OSCServer:
         print("Serving on {}".format(self.server.server_address))
         thread = threading.Thread(target=self.server.serve_forever)
         thread.start()
+        self.running = True
 
     def stop(self):
-        self.server.stop()
+        if self.running:
+            self.server.shutdown()
 
 
 class FrameTransmitter:
@@ -72,6 +76,8 @@ class FrameTransmitter:
         self.client = udp_client.SimpleUDPClient(self.ip, self.port)
 
         self.lock = threading.Lock()
+        self.thread = None
+        self.running = False
 
     def set_frame(self, frame):
         self.frame = frame.copy()
@@ -116,5 +122,10 @@ class FrameTransmitter:
         self.running = True
         self.client = udp_client.SimpleUDPClient(self.ip, self.port)
         print("Sending on {}".format(self.ip))
-        thread = threading.Thread(target=self.__transmit_frame)
-        thread.start()
+        self.thread = threading.Thread(target=self.__transmit_frame)
+        self.thread.start()
+
+    def stop(self):
+        if self.running:
+            self.running = False
+            self.thread.join()
