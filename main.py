@@ -313,3 +313,4 @@ if __name__ == "__main__":
     t_analyzer.stop()
     t_server.stop()
     t_client.stop()
+    t_visualizer.stop()
