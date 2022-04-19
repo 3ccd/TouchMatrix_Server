@@ -54,6 +54,8 @@ class Visualizer:
         self.thread.start()
 
     def stop(self):
+        if self.running is False:
+            return
         self.running = False
         cv2.destroyAllWindows()
         self.thread.join()
