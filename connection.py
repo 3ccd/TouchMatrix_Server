@@ -6,8 +6,6 @@ import numpy as np
 from pythonosc import udp_client
 from pythonosc import dispatcher
 from pythonosc import osc_server
-from pythonosc import osc_bundle_builder
-from pythonosc import osc_message_builder
 
 
 class TmFrame:

@@ -22,11 +22,12 @@ class StdoutRedirector(object):
 
 
 class TmView(tk.Tk):
-    def __init__(self, analyzer, server, visualizer, client):
+    def __init__(self, analyzer, server, visualizer, client, calibration):
         self.analyzer = analyzer
         self.server = server
         self.visualizer = visualizer
         self.client = client
+        self.calibration = calibration
 
         super().__init__()
         self.title("TouchMatrix Viewer")
@@ -128,8 +129,8 @@ class TmView(tk.Tk):
         target_ip = tk.StringVar(value=self.client.ip)
         local_ip_entry = tk.Entry(control_frame, textvariable=local_ip, width=15)
         target_ip_entry = tk.Entry(control_frame, textvariable=target_ip, width=15)
-        local_ip_entry.bind('<Return>', lambda arg: self.server.set_addr(local_ip.get(), 9000))
-        target_ip_entry.bind('<Return>', lambda arg: self.client.set_addr(target_ip.get(), 7000))
+        local_ip_entry.bind('<Return>', lambda arg: self.server.set_addr(local_ip.get(), 7000))
+        target_ip_entry.bind('<Return>', lambda arg: self.client.set_addr(target_ip.get(), 9000))
 
         lp_label.grid(row=0, column=0)
         local_ip_entry.grid(row=0, column=1)
@@ -155,10 +156,10 @@ class TmView(tk.Tk):
 
         self.figure_frame = tk.Frame(cal_frame, pady=10, padx=10)
         control_frame = tk.Frame(cal_frame)
-        cal_lower_button = tk.Button(control_frame, text="Lower", command=self.analyzer.calibration_lower, width=20)
-        cal_upper_button = tk.Button(control_frame, text="Upper", command=self.analyzer.calibration_upper, width=20)
-        save_cal_button = tk.Button(control_frame, text="Save", command=self.analyzer.save_data, width=20)
-        load_cal_button = tk.Button(control_frame, text="Load", command=self.analyzer.load_data, width=20)
+        cal_lower_button = tk.Button(control_frame, text="Lower", command=self.calibration.calibration_lower, width=20)
+        cal_upper_button = tk.Button(control_frame, text="Upper", command=self.calibration.calibration_upper, width=20)
+        save_cal_button = tk.Button(control_frame, text="Save", command=self.calibration.save_data, width=20)
+        load_cal_button = tk.Button(control_frame, text="Load", command=self.calibration.load_data, width=20)
         change_button = tk.Button(control_frame, text="Toggle Image", command=self._change_image, width=20)
 
         self.figure_frame.grid(row=0, column=0, sticky=tk.N)
@@ -176,15 +177,15 @@ class TmView(tk.Tk):
             self.img_type = 0
 
     def get_sensor_data(self, index):
-        if self.analyzer.latest_data is None:
+        if not self.calibration.is_calibration_available():
             return 0
-        return self.analyzer.latest_data[index]
+        return self.calibration.get_sensor_data[index]
 
     def get_calibrate_data(self, index):
-        if self.analyzer.cal_min is None or self.analyzer.cal_max is None:
+        if not self.calibration.is_calibration_available():
             return 0, 60000
-        cal_min = self.analyzer.cal_min[index]
-        cal_max = self.analyzer.cal_max[index]
+        cal_min = self.calibration.cal_min[index]
+        cal_max = self.calibration.cal_max[index]
 
         return cal_min, cal_max
 
@@ -239,7 +240,7 @@ class TmView(tk.Tk):
         else:
             self.disp2_image(self.analyzer.disp3_img)
 
-        self.view_frame.after(20, self.__update_image)
+        self.view_frame.after(10, self.__update_image)
 
     def disp_image(self, img):
         # NumPyのndarrayからPillowのImageへ変換

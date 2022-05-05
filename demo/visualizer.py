@@ -56,10 +56,11 @@ class Visualizer:
     def stop(self):
         if self.running is False:
             return
-        self.running = False
-        cv2.destroyAllWindows()
-        self.thread.join()
-        self.thread = None
+        if self.running:
+            self.running = False
+            cv2.destroyAllWindows()
+            self.thread.join()
+            self.thread = None
 
     def set_content(self, content):
         self.content = content
