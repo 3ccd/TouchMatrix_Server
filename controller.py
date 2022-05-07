@@ -179,7 +179,7 @@ class TmView(tk.Tk):
     def get_sensor_data(self, index):
         if not self.calibration.is_calibration_available():
             return 0
-        return self.calibration.get_sensor_data[index]
+        return self.calibration.get_sensor_data()[index]
 
     def get_calibrate_data(self, index):
         if not self.calibration.is_calibration_available():

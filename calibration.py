@@ -63,11 +63,11 @@ class Calibration:
 
         tmp = self.cal_max - self.cal_min
 
-        error = np.where(tmp == 0)  # ERROR DETECTOR
-        if error.shape[0] > 0:
-            print('Error: sensor ')
-            print(error)
-            return
+        # error = np.where(tmp == 0)  # ERROR DETECTOR
+        # if error.shape[0] > 0:
+        #     print('Error: sensor ')
+        #     print(error)
+        #     return
 
         self.range = tmp
         print(self.range)
