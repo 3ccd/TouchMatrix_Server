@@ -23,7 +23,7 @@ class Calibration:
         offset[offset > self.range] = self.range[offset > self.range]
 
         # normalize
-        calc = (offset / self.range) + 0.02
+        calc = (offset / self.range)
         calc[calc > 1.0] = 1.0
 
         return calc

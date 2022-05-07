@@ -3,6 +3,7 @@ import time
 import threading
 import numpy as np
 import cv2
+from scipy.ndimage import maximum_filter
 
 
 def gauss2d(size, sd):
@@ -143,7 +144,7 @@ class Analyzer(threading.Thread):
     def __plot(self, sensor_data):
         self.__clear_plot()
         sens_height, sens_width = sensor_data.shape[:2]
-        xp = int(self.plot_size[1] / (sens_width - 1))   # step x
+        xp = int(self.plot_size[1] / (sens_width - 1))  # step x
         yp = int(self.plot_size[0] / (sens_height - 1))  # step y
         grad_h = int(self.grad_size / 2)
 
@@ -156,11 +157,25 @@ class Analyzer(threading.Thread):
 
         self.plot_img[self.plot_img > 1.0] = 1.0
 
-    def detect_touch(self):
-        pass
+    def detect_touch(self, img):
+        tmp_img = img.copy()
+        tmp_img[tmp_img < 0.2] = 0.0
 
-    def detect_object(self):
-        pass
+        local_max = maximum_filter(tmp_img, footprint=np.ones((10, 10)), mode="constant")
+        detected_peaks = np.ma.array(tmp_img, mask=~(tmp_img == local_max))
+
+        tmp = np.ma.array(detected_peaks, mask=~(detected_peaks >= detected_peaks.max() * 0.2))
+        peaks_index = np.where((tmp.mask != True))
+
+        return peaks_index
+
+    def detect_object(self, img):
+        tmp_img = img.copy()
+        tmp_img[tmp_img < 0.2] = 0.0
+
+        tmp8bit = (tmp_img * 255).astype(np.uint8)  # 8bitのスケールへ変換
+        ret, tmp = cv2.threshold(tmp8bit, 0, 255, cv2.THRESH_OTSU)
+        return tmp
 
     def __loop(self):
         if not self.calibration.is_calibration_available():
@@ -184,18 +199,21 @@ class Analyzer(threading.Thread):
 
         tmpx = self.over_scan + self.plot_size[0]
         tmpy = self.over_scan + self.plot_size[1]
+
         ret, tmp = cv2.threshold(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy],
                                  float(self.threshold), 1.0, cv2.THRESH_BINARY)
+        peaks = self.detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
+        obj = self.detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
 
         # kernel = np.ones((5, 5), np.uint8)
         # tmp = cv2.dilate(tmp, kernel, iterations=5)
         # tmp = cv2.erode(tmp, kernel, iterations=5)
 
-        tmp8bit = (tmp * 255).astype(np.uint8)                          # 8bitのスケールへ変換
-        color = np.zeros((tmp.shape[0], tmp.shape[1], 3), np.uint8)     # 3chの画像を生成
-        cv2.cvtColor(tmp8bit, cv2.COLOR_GRAY2RGB, color)                # RGB画像へ変換
+        # tmp8bit = (tmp * 255).astype(np.uint8)  # 8bitのスケールへ変換
+        color = np.zeros((tmp.shape[0], tmp.shape[1], 3), np.uint8)  # 3chの画像を生成
+        cv2.cvtColor(obj.astype(np.uint8), cv2.COLOR_GRAY2RGB, color)  # RGB画像へ変換
 
-        retval, labels, stats, centroids = cv2.connectedComponentsWithStats(tmp8bit)        # Labeling
+        retval, labels, stats, centroids = cv2.connectedComponentsWithStats(obj)  # Labeling
 
         if len(centroids) > 1:
             self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[1])
@@ -208,6 +226,12 @@ class Analyzer(threading.Thread):
                 self.touch_status = False
 
         color_labels = draw_centroids(color, centroids)
+        if len(peaks[0]) != self.plot_size[0] * self.plot_size[1]:
+            for i in range(len(peaks[0])):
+                cv2.drawMarker(color, (peaks[1][i], peaks[0][i]), (0, 255, 0), markerType=cv2.MARKER_CROSS,
+                               markerSize=20, thickness=2,
+                               line_type=cv2.LINE_8)
+
         self._call_draw_event(color_labels)
 
         self.disp_img = color_labels
