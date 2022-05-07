@@ -94,9 +94,9 @@ class FrameTransmitter:
         if ch == 'b':
             return self.frame[:, :, 2].flatten().tolist()
 
-    def send_message(self, address, x, y):
+    def send_message(self, address, data):
         self.lock.acquire()
-        self.client.send_message(address, [x, y])
+        self.client.send_message(address, data)
         self.lock.release()
 
     def __transmit_frame(self):

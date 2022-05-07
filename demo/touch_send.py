@@ -16,11 +16,11 @@ class TouchSend(DemoContents, ABC):
     def draw(self):
         if self.visualizer.is_touch:
             self.client.send_message("/touch",
-                                     int(self.visualizer.touch_pos[0] / 10),
-                                     int(self.visualizer.touch_pos[1] / 10))
+                                     [int(self.visualizer.touch_pos[0] / 10),
+                                      int(self.visualizer.touch_pos[1] / 10)])
 
     def touch_up(self):
-        self.client.send_message("/touch", -1, -1)
+        self.client.send_message("/touch", [-1, -1])
 
     def touch_down(self):
         pass
