@@ -1,9 +1,3 @@
-"""Small example OSC server anbd client combined
-This program listens to serveral addresses and print if there is an input. 
-It also transmits on a different port at the same time random values to different addresses.
-This can be used to demonstrate concurrent send and recieve over OSC
-"""
-
 import connection
 import controller
 import analyzer

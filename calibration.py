@@ -28,7 +28,6 @@ class Calibration:
 
         return calc
 
-
     def get_range(self):
         return self.range
 

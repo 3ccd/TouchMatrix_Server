@@ -51,6 +51,38 @@ def draw_centroids(src_img, centroids):
     return centroids_img
 
 
+def detect_touch(img):
+    """
+    グラデーション画像の局所最大値を計算
+    :param img: グラデーション画像
+    :return: 局所最大値を持つ画素の座標
+    """
+    tmp_img = img.copy()
+    tmp_img[tmp_img < 0.2] = 0.0        # ノイズの除去
+
+    local_max = maximum_filter(tmp_img, footprint=np.ones((10, 10)), mode="constant")
+    detected_peaks = np.ma.array(tmp_img, mask=~(tmp_img == local_max))
+
+    tmp = np.ma.array(detected_peaks, mask=~(detected_peaks >= detected_peaks.max() * 0.2))
+    peaks_index = np.where((tmp.mask != True))
+
+    return peaks_index
+
+
+def detect_object(img):
+    """
+    判別分析を用いた二値化
+    :param img: グラデーション画像
+    :return: 二値化画像
+    """
+    tmp_img = img.copy()
+    tmp_img[tmp_img < 0.2] = 0.0
+
+    tmp8bit = (tmp_img * 255).astype(np.uint8)  # 8bitのスケールへ変換
+    ret, tmp = cv2.threshold(tmp8bit, 0, 255, cv2.THRESH_OTSU)
+    return tmp
+
+
 class Analyzer(threading.Thread):
 
     def __init__(self, tm, calibration):
@@ -133,15 +165,28 @@ class Analyzer(threading.Thread):
         self.gamma = gamma
 
     def __call(self):
+        """
+        処理ループ
+        :return: None
+        """
         while self.running:
             self.__loop()
             time.sleep(0.01)
 
     def __clear_plot(self):
+        """
+        合成画像を初期化
+        :return: None
+        """
         extra_px = self.over_scan * 2
         self.plot_img = np.zeros((self.plot_size[0] + extra_px, self.plot_size[1] + extra_px))
 
     def __plot(self, sensor_data):
+        """
+        グラデーション画像にセンサ値をかけ合わせたものを合成
+        :param sensor_data: センサ値
+        :return: None
+        """
         self.__clear_plot()
         sens_height, sens_width = sensor_data.shape[:2]
         xp = int(self.plot_size[1] / (sens_width - 1))  # step x
@@ -156,26 +201,6 @@ class Analyzer(threading.Thread):
                 self.plot_img[y - grad_h:y + grad_h, x - grad_h:x + grad_h] += tmp
 
         self.plot_img[self.plot_img > 1.0] = 1.0
-
-    def detect_touch(self, img):
-        tmp_img = img.copy()
-        tmp_img[tmp_img < 0.2] = 0.0
-
-        local_max = maximum_filter(tmp_img, footprint=np.ones((10, 10)), mode="constant")
-        detected_peaks = np.ma.array(tmp_img, mask=~(tmp_img == local_max))
-
-        tmp = np.ma.array(detected_peaks, mask=~(detected_peaks >= detected_peaks.max() * 0.2))
-        peaks_index = np.where((tmp.mask != True))
-
-        return peaks_index
-
-    def detect_object(self, img):
-        tmp_img = img.copy()
-        tmp_img[tmp_img < 0.2] = 0.0
-
-        tmp8bit = (tmp_img * 255).astype(np.uint8)  # 8bitのスケールへ変換
-        ret, tmp = cv2.threshold(tmp8bit, 0, 255, cv2.THRESH_OTSU)
-        return tmp
 
     def __loop(self):
         if not self.calibration.is_calibration_available():
@@ -202,8 +227,8 @@ class Analyzer(threading.Thread):
 
         ret, tmp = cv2.threshold(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy],
                                  float(self.threshold), 1.0, cv2.THRESH_BINARY)
-        peaks = self.detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
-        obj = self.detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
+        peaks = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
+        obj = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
 
         # kernel = np.ones((5, 5), np.uint8)
         # tmp = cv2.dilate(tmp, kernel, iterations=5)
