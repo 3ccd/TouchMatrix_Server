@@ -262,3 +262,28 @@ class Analyzer(threading.Thread):
         self.disp_img = color_labels
         self.disp2_img = (self.plot_img * 255).astype(np.uint8)
         self.disp3_img = cv2.resize(calc * 255, (self.plot_size[1], self.plot_size[0]), interpolation=cv2.INTER_NEAREST)
+
+
+class TouchTracker:
+    def __init__(self):
+        self.touch_dict = {}
+        self.threshold = 10
+
+    def add_point(self, point):
+        pass
+
+    def update_point(self, point, num):
+        self.touch_dict[num] = point
+
+    def search(self, point):
+        flg = False
+        for num, p in self.touch_dict:
+            distance = math.sqrt(((point[0] - p[0]) ^ 2) + ((point[1] - p[1]) ^ 2))
+            if distance < self.threshold:
+                flg = True
+                self.update_point(point, num)
+                return num
+
+        if flg is False:
+            num = self.add_point(point)
+            return num
