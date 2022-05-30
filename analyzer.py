@@ -265,12 +265,13 @@ class Analyzer(threading.Thread):
                 self._call_object_event(cv2.EVENT_RBUTTONUP)
                 self.touch_status = False
 
-        color_labels = draw_centroids(color, centroids)
+        # color_labels = draw_centroids(color, centroids)
+        color_labels = color
         if len(peaks[0]) != self.plot_size[0] * self.plot_size[1]:
             for i in range(len(peaks[0])):
                 num = self.touch_tracker.update_touch((peaks[1][i], peaks[0][i]))
                 if num != -1:
-                    cv2.drawMarker(color, (peaks[1][i], peaks[0][i]), color_list[i], markerType=cv2.MARKER_CROSS,
+                    cv2.drawMarker(color, (peaks[1][i], peaks[0][i]), color_list[num], markerType=cv2.MARKER_CROSS,
                                    markerSize=20, thickness=2,
                                    line_type=cv2.LINE_8)
             self.touch_tracker.end_frame()
@@ -286,7 +287,7 @@ class TouchTracker:
     def __init__(self):
         self.touch_dict = {}
         self.updated_id = {}
-        self.threshold = 10
+        self.threshold = 40
         self.max_detection = 10
 
     def add_point(self, point):
@@ -317,7 +318,7 @@ class TouchTracker:
         :return: None
         """
         for i in range(self.max_detection):
-            if i not in self.updated_id:
+            if i not in self.updated_id and i in self.touch_dict:
                 self.touch_dict.pop(i)
         self.updated_id.clear()
 
@@ -330,9 +331,11 @@ class TouchTracker:
         """
         min_id = -1
         min_distance = 1000
-        for num, p in self.touch_dict:
-            distance = math.sqrt(((point[0] - p[0]) ^ 2) + ((point[1] - p[1]) ^ 2))
-            if distance < self.threshold and distance < min_distance:
+        for num, p in self.touch_dict.items():
+            distance = math.sqrt(((point[0] - p[0]) ** 2) + ((point[1] - p[1]) ** 2))
+            if distance < self.threshold and\
+                    distance < min_distance and\
+                    num not in self.updated_id:
                 # 閾値以下で，最短距離のタッチ座標を検索
                 min_distance = distance
                 min_id = num
