@@ -6,6 +6,20 @@ import cv2
 from scipy.ndimage import maximum_filter
 
 
+color_list = [
+    (255, 255,   0),
+    (255,   0, 255),
+    (  0, 255, 255),
+    (255,   0,   0),
+    (  0, 255,   0),
+    (  0,   0, 255),
+    (255, 128, 128),
+    (128, 128, 255),
+    (128, 255, 128),
+    ( 64, 128, 255),
+]
+
+
 def gauss2d(size, sd):
     """
     ガウス分布のグラデーション画像の生成
@@ -122,6 +136,7 @@ class Analyzer(threading.Thread):
         self.touch_status = False
 
         self.latest_data = None
+        self.touch_tracker = TouchTracker()
 
     def __del__(self):
         self.stop()
@@ -253,9 +268,12 @@ class Analyzer(threading.Thread):
         color_labels = draw_centroids(color, centroids)
         if len(peaks[0]) != self.plot_size[0] * self.plot_size[1]:
             for i in range(len(peaks[0])):
-                cv2.drawMarker(color, (peaks[1][i], peaks[0][i]), (0, 255, 0), markerType=cv2.MARKER_CROSS,
-                               markerSize=20, thickness=2,
-                               line_type=cv2.LINE_8)
+                num = self.touch_tracker.update_touch((peaks[1][i], peaks[0][i]))
+                if num != -1:
+                    cv2.drawMarker(color, (peaks[1][i], peaks[0][i]), color_list[i], markerType=cv2.MARKER_CROSS,
+                                   markerSize=20, thickness=2,
+                                   line_type=cv2.LINE_8)
+            self.touch_tracker.end_frame()
 
         self._call_draw_event(color_labels)
 
@@ -267,23 +285,63 @@ class Analyzer(threading.Thread):
 class TouchTracker:
     def __init__(self):
         self.touch_dict = {}
+        self.updated_id = {}
         self.threshold = 10
+        self.max_detection = 10
 
     def add_point(self, point):
-        pass
+        """
+        空きIDを検索し，挿入する
+        :param point: タッチ座標
+        :return: 割り当てたID
+        """
+        for i in range(self.max_detection):
+            if i not in self.touch_dict:
+                self.update_point(point, i)
+                return i
+        return -1
 
     def update_point(self, point, num):
+        """
+        タッチ座標を更新する
+        :param point: タッチ座標
+        :param num: ID
+        :return: None
+        """
         self.touch_dict[num] = point
+        self.updated_id[num] = True
 
-    def search(self, point):
-        flg = False
+    def end_frame(self):
+        """
+        更新されなかったIDを解放
+        :return: None
+        """
+        for i in range(self.max_detection):
+            if i not in self.updated_id:
+                self.touch_dict.pop(i)
+        self.updated_id.clear()
+
+    def update_touch(self, point):
+        """
+        タッチ座標を検索し，新規であれば挿入
+        タッチ検出の最大値を超えれば-1が返る
+        :param point: タッチ座標
+        :return: ID
+        """
+        min_id = -1
+        min_distance = 1000
         for num, p in self.touch_dict:
             distance = math.sqrt(((point[0] - p[0]) ^ 2) + ((point[1] - p[1]) ^ 2))
-            if distance < self.threshold:
-                flg = True
-                self.update_point(point, num)
-                return num
+            if distance < self.threshold and distance < min_distance:
+                # 閾値以下で，最短距離のタッチ座標を検索
+                min_distance = distance
+                min_id = num
 
-        if flg is False:
+        if min_id == -1:
+            # 見つからなかった場合は新規に挿入
             num = self.add_point(point)
             return num
+        else:
+            # 見つかった場合は更新
+            self.update_point(point, min_id)
+            return min_id
