@@ -263,17 +263,17 @@ class Analyzer(threading.Thread):
         color = np.zeros((tmp.shape[0], tmp.shape[1], 3), np.uint8)  # 3chの画像を生成
         cv2.cvtColor(obj.astype(np.uint8), cv2.COLOR_GRAY2RGB, color)  # RGB画像へ変換
 
-        retval, labels, stats, centroids = cv2.connectedComponentsWithStats(obj)  # Labeling
+        # retval, labels, stats, centroids = cv2.connectedComponentsWithStats(obj)  # Labeling
 
-        if len(centroids) > 1:
-            self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[1])
-            if self.touch_status is False:
-                self._call_object_event(cv2.EVENT_RBUTTONDOWN)
-                self.touch_status = True
-        else:
-            if self.touch_status is True:
-                self._call_object_event(cv2.EVENT_RBUTTONUP)
-                self.touch_status = False
+        # if len(centroids) > 1:
+        #     self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[1])
+        #     if self.touch_status is False:
+        #         self._call_object_event(cv2.EVENT_RBUTTONDOWN)
+        #         self.touch_status = True
+        # else:
+        #     if self.touch_status is True:
+        #         self._call_object_event(cv2.EVENT_RBUTTONUP)
+        #         self.touch_status = False
 
         # color_labels = draw_centroids(color, centroids)
         color_labels = color
@@ -294,11 +294,22 @@ class Analyzer(threading.Thread):
 
 
 class TouchTracker:
+
+    EVENT_TOUCH_UPDATE = 1
+    EVENT_TOUCH_UP = 2
+
     def __init__(self):
         self.touch_dict = {}
         self.updated_id = {}
         self.threshold = 40
         self.max_detection = 10
+        self.touch_callback = None
+
+    def call_touch_event(self, tid, point, event):
+        if self.touch_callback is None:
+            return
+
+        self.touch_callback(tid, point, event)
 
     def add_point(self, point):
         """
@@ -321,16 +332,21 @@ class TouchTracker:
         """
         self.touch_dict[num] = point
         self.updated_id[num] = True
+        self.call_touch_event(num, point, self.EVENT_TOUCH_UPDATE)
 
     def end_frame(self):
         """
         更新されなかったIDを解放
         :return: None
         """
+        clear_ids = []
         for i in range(self.max_detection):
             if i not in self.updated_id and i in self.touch_dict:
                 self.touch_dict.pop(i)
+                self.call_touch_event(i, (-1, -1), self.EVENT_TOUCH_UP)
+                clear_ids.append(i)
         self.updated_id.clear()
+        return clear_ids
 
     def update_touch(self, point):
         """
