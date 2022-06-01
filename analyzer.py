@@ -123,6 +123,9 @@ class Analyzer(threading.Thread):
         self.sd = 16
         self.over_scan = 60
 
+        self.filter_buffer = np.zeros((5, 121), dtype=np.uint16)
+        print(self.filter_buffer.shape)
+
         self.grad_img = None
         self.plot_img = None
         self.disp_img = None
@@ -179,6 +182,12 @@ class Analyzer(threading.Thread):
     def set_curve_param(self, gamma):
         self.gamma = gamma
 
+    def update_filter(self, sensor_data):
+        self.filter_buffer = np.roll(self.filter_buffer, -1, axis=0)
+        self.filter_buffer[:, self.filter_buffer.shape[1] - 1] = sensor_data
+        sensor_sum = self.filter_buffer.sum(axis=0)
+        return sensor_sum / self.filter_buffer.shape[1]
+
     def __call(self):
         """
         処理ループ
@@ -222,6 +231,7 @@ class Analyzer(threading.Thread):
             return
 
         calc = self.calibration.get_calibrated_data()
+        self.update_filter(calc)
 
         # tone curve
         if self.curve_type == 1:
