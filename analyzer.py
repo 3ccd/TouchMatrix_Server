@@ -124,7 +124,6 @@ class Analyzer(threading.Thread):
         self.over_scan = 60
 
         self.filter_buffer = np.zeros((3, 121))
-        print(self.filter_buffer.shape)
 
         self.grad_img = None
         self.plot_img = None
@@ -183,9 +182,14 @@ class Analyzer(threading.Thread):
         self.gamma = gamma
 
     def update_filter(self, sensor_data):
+        """
+        移動平均フィルタ
+        :param sensor_data:
+        :return:
+        """
         self.filter_buffer = np.roll(self.filter_buffer, -1, axis=0)
-        self.filter_buffer[self.filter_buffer.shape[0] - 1, :] = sensor_data
-        sensor_sum = self.filter_buffer.sum(axis=0) / 2
+        self.filter_buffer[-1, :] = sensor_data
+        sensor_sum = self.filter_buffer.sum(axis=0) / self.filter_buffer.shape[0]
         return sensor_sum
 
     def __call(self):
@@ -255,27 +259,11 @@ class Analyzer(threading.Thread):
         peaks = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
         obj = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
 
-        # kernel = np.ones((5, 5), np.uint8)
-        # tmp = cv2.dilate(tmp, kernel, iterations=5)
-        # tmp = cv2.erode(tmp, kernel, iterations=5)
-
-        # tmp8bit = (tmp * 255).astype(np.uint8)  # 8bitのスケールへ変換
         color = np.zeros((tmp.shape[0], tmp.shape[1], 3), np.uint8)  # 3chの画像を生成
         cv2.cvtColor(obj.astype(np.uint8), cv2.COLOR_GRAY2RGB, color)  # RGB画像へ変換
 
         # retval, labels, stats, centroids = cv2.connectedComponentsWithStats(obj)  # Labeling
 
-        # if len(centroids) > 1:
-        #     self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[1])
-        #     if self.touch_status is False:
-        #         self._call_object_event(cv2.EVENT_RBUTTONDOWN)
-        #         self.touch_status = True
-        # else:
-        #     if self.touch_status is True:
-        #         self._call_object_event(cv2.EVENT_RBUTTONUP)
-        #         self.touch_status = False
-
-        # color_labels = draw_centroids(color, centroids)
         color_labels = color
         if len(peaks[0]) != self.plot_size[0] * self.plot_size[1]:
             for i in range(len(peaks[0])):
