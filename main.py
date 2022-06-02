@@ -25,23 +25,24 @@ if __name__ == "__main__":
     t_visualizer.set_callback(t_client.set_frame)
 
     # initialize demo contents instance
-    from demo import continuous_lines, turn_table, object_detection, object_scan, ocr, touch_send, synthesizer
-    demo_lines = continuous_lines.ContinuousLines(t_visualizer)
-    demo_table = turn_table.TurnTable(t_visualizer)
-    demo_detection = object_detection.ObjectDetection(t_visualizer)
-    demo_scan = object_scan.ObjectScan(t_visualizer)
-    demo_graphic = ocr.OCR(t_visualizer)
+    # from demo import continuous_lines, turn_table, object_detection, object_scan, ocr, touch_send, synthesizer
+    from demo import touch_send
+    # demo_lines = continuous_lines.ContinuousLines(t_visualizer)
+    # demo_table = turn_table.TurnTable(t_visualizer)
+    # demo_detection = object_detection.ObjectDetection(t_visualizer)
+    # demo_scan = object_scan.ObjectScan(t_visualizer)
+    # demo_graphic = ocr.OCR(t_visualizer)
     demo_touch = touch_send.TouchSend(t_visualizer, t_client)
-    demo_synth = synthesizer.Synthesizer(t_visualizer, t_client)
+    # demo_synth = synthesizer.Synthesizer(t_visualizer, t_client)
 
     # register demo contents
-    t_view.insert_contents(demo_lines)
-    t_view.insert_contents(demo_table)
-    t_view.insert_contents(demo_detection)
-    t_view.insert_contents(demo_scan)
-    t_view.insert_contents(demo_graphic)
+    # t_view.insert_contents(demo_lines)
+    # t_view.insert_contents(demo_table)
+    # t_view.insert_contents(demo_detection)
+    # t_view.insert_contents(demo_scan)
+    # t_view.insert_contents(demo_graphic)
     t_view.insert_contents(demo_touch)
-    t_view.insert_contents(demo_synth)
+    # t_view.insert_contents(demo_synth)
 
     t_analyzer.start()
 

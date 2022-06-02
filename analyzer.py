@@ -138,7 +138,7 @@ class Analyzer(threading.Thread):
         self.touch_status = False
 
         self.latest_data = None
-        self.touch_tracker = TouchTracker()
+        self.touch_tracker = TouchTracker(self.plot_size)
 
     def __del__(self):
         self.stop()
@@ -283,15 +283,17 @@ class Analyzer(threading.Thread):
 
 class TouchTracker:
 
-    EVENT_TOUCH_UPDATE = 1
-    EVENT_TOUCH_UP = 2
+    # opencv event compatible
+    EVENT_TOUCH_UPDATE = 0
+    EVENT_TOUCH_UP = 5
 
-    def __init__(self):
+    def __init__(self, frame_size):
         self.touch_dict = {}
         self.updated_id = {}
         self.threshold = 40
         self.max_detection = 10
         self.touch_callback = None
+        self.frame_size = frame_size
 
     def call_touch_event(self, tid, point, event):
         if self.touch_callback is None:
@@ -336,13 +338,14 @@ class TouchTracker:
         self.updated_id.clear()
         return clear_ids
 
-    def update_touch(self, point):
+    def update_touch(self, point_src):
         """
         タッチ座標を検索し，新規であれば挿入
         タッチ検出の最大値を超えれば-1が返る
-        :param point: タッチ座標
+        :param point_src: タッチ座標
         :return: ID
         """
+        point = (point_src[0] / self.frame_size[0], point_src[1] / self.frame_size[1])
         min_id = -1
         min_distance = 1000
         for num, p in self.touch_dict.items():

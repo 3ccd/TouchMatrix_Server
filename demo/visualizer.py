@@ -73,31 +73,18 @@ class Visualizer:
     def get_object_image(self, real_size):
         return self.object_image
 
-    def touch_event_from_analyzer(self, event, x, y):
+    def touch_event_from_analyzer(self, tid, point, event):
         x_s = 0
         y_s = 0
         if event == cv2.EVENT_MOUSEMOVE:
-            x_s = int(x * self.frame_size[0])
-            y_s = int(y * self.frame_size[1])
+            x_s = int(point[0] * self.frame_size[0])
+            y_s = int(point[1] * self.frame_size[1])
 
-        self.touch_event(event, x_s, y_s)
+        self.touch_event(event, x_s, y_s, tid=tid)
 
-    def touch_event(self, event, x, y, flags=None, param=None):
-        if event == cv2.EVENT_MOUSEMOVE:
-            if self.prev_touch_pos == (-1, -1):
-                self.prev_touch_pos = (x, y)
-            self.touch_pos = (x, y)
-
-        if event == cv2.EVENT_RBUTTONDOWN:
-            if self.content is not None:
-                self.content.touch_event(event)
-            self.is_touch = True
-        if event == cv2.EVENT_RBUTTONUP:
-            if self.content is not None:
-                self.content.touch_event(event)
-            self.is_touch = False
-            self.prev_touch_pos = (-1, -1)
-            self.touch_pos = (-1, -1)
+    def touch_event(self, event, x, y, flags=None, param=None, tid=100):
+        if self.content is not None:
+            self.content.touch_event(event, tid)
 
 
 class DemoContents(metaclass=ABCMeta):
@@ -111,7 +98,7 @@ class DemoContents(metaclass=ABCMeta):
 
         self.clear_frame()
 
-    def touch_event(self, event):
+    def touch_event(self, event, tid):
         if event == cv2.EVENT_RBUTTONDOWN:
             self.touch_down()
         elif event == cv2.EVENT_RBUTTONUP:
