@@ -84,38 +84,62 @@ class Visualizer:
 
     def touch_event(self, event, x, y, flags=None, param=None, tid=100):
         if self.content is not None:
-            self.content.touch_event(event, tid)
+            self.content.touch_event(event, tid, (x, y))
 
 
 class DemoContents(metaclass=ABCMeta):
 
     def __init__(self, visualizer):
         self.visualizer = visualizer
-        self.frame = None
-        self.name = ""
+        self.frame = None                   # フレームバッファ
+        self.name = ""                      # デモコンテンツの表示名
 
-        self.frame_available = True
+        self.frame_available = True         # フレーム送出の許可　
 
         self.clear_frame()
 
-    def touch_event(self, event, tid):
+    def touch_event(self, event, tid, point):
+        """
+        visualizerからタッチイベントの受取
+        :param event: イベントID
+        :param tid: タッチID
+        :param point: タッチ座標
+        :return:
+        """
         if event == cv2.EVENT_RBUTTONDOWN:
-            self.touch_down()
+            self.touch_down(tid)
         elif event == cv2.EVENT_RBUTTONUP:
-            self.touch_up()
+            self.touch_up(tid)
+        elif event == cv2.EVENT_MOUSEMOVE:
+            self.touch_update(tid, point)
 
     def clear_frame(self):
+        """
+        フレームバッファの初期化
+        :return:
+        """
         self.frame = np.zeros((self.visualizer.frame_size[0], self.visualizer.frame_size[1], 3), np.uint8)
 
     @abstractmethod
     def draw(self):
+        """
+        描画ループ
+        :return:
+        """
         pass
 
-    def touch_down(self):
+    def touch_down(self, tid):
         pass
 
-    def touch_up(self):
+    def touch_up(self, tid):
+        pass
+
+    def touch_update(self, tid, point):
         pass
 
     def content_changed(self):
+        """
+        visualizerによってコンテンツが切り替えられたとき呼出
+        :return:
+        """
         pass

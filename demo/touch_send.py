@@ -14,16 +14,16 @@ class TouchSend(DemoContents, ABC):
         self.frame_available = False
 
     def draw(self):
-        if self.visualizer.is_touch:
-            self.client.send_message("/touch",
-                                     [int(self.visualizer.touch_pos[0] / 10),
-                                      int(self.visualizer.touch_pos[1] / 10)])
-
-    def touch_up(self):
-        self.client.send_message("/touch", [-1, -1])
-
-    def touch_down(self):
         pass
+
+    def touch_up(self, tid):
+        self.client.send_message("/touch/" + tid, [-1, -1])
+
+    def touch_down(self, tid):
+        pass
+
+    def touch_update(self, tid, point):
+        self.client.send_message("/touch" + tid, [int(point[0] / 10), int(point[1] / 10)])
 
     def content_changed(self):
         self.clear_frame()

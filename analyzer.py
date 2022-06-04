@@ -78,7 +78,7 @@ def detect_touch(img):
     detected_peaks = np.ma.array(tmp_img, mask=~(tmp_img == local_max))
 
     tmp = np.ma.array(detected_peaks, mask=~(detected_peaks >= detected_peaks.max() * 0.2))
-    peaks_index = np.where((tmp.mask != True))
+    peaks_index = np.where((not tmp.mask))
 
     return peaks_index
 
@@ -149,6 +149,7 @@ class Analyzer(threading.Thread):
 
     def set_touch_callback(self, callback):
         self.touch_callback = callback
+        self.touch_tracker.touch_callback = self.touch_callback
 
     def set_draw_callback(self, callback):
         self.draw_callback = callback
@@ -189,7 +190,7 @@ class Analyzer(threading.Thread):
         """
         self.filter_buffer = np.roll(self.filter_buffer, -1, axis=0)
         self.filter_buffer[-1, :] = sensor_data
-        sensor_sum = self.filter_buffer.sum(axis=0) / self.filter_buffer.shape[0]
+        sensor_sum = self.filter_buffer.sum(axis=0) / (self.filter_buffer.shape[0] - 1)
         return sensor_sum
 
     def __call(self):
@@ -285,6 +286,7 @@ class TouchTracker:
 
     # opencv event compatible
     EVENT_TOUCH_UPDATE = 0
+    EVENT_TOUCH_DOWN = 2
     EVENT_TOUCH_UP = 5
 
     def __init__(self, frame_size):
@@ -296,6 +298,14 @@ class TouchTracker:
         self.frame_size = frame_size
 
     def call_touch_event(self, tid, point, event):
+        """
+        コールバックを呼び出し
+        touch_callbackにコールバックを登録しておく
+        :param tid: タッチID
+        :param point: 座標
+        :param event: イベント
+        :return:
+        """
         if self.touch_callback is None:
             return
 
