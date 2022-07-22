@@ -10,11 +10,12 @@ if __name__ == "__main__":
     # Sharing Data
     t_frame = connection.TmFrame()
 
-    # initialize instance
+    # create instance
     t_calibration = calibration.Calibration(t_frame)
+    t_track = analyzer.ObjTracker()
     t_server = connection.OSCServer(t_frame, "192.168.0.4")
     t_client = connection.FrameTransmitter(ip='192.168.0.2')
-    t_analyzer = analyzer.Analyzer(t_frame, t_calibration)
+    t_analyzer = analyzer.Analyzer(t_frame, t_calibration, t_track)
     t_visualizer = vis.Visualizer((320, 640))
     t_view = controller.TmView(t_analyzer, t_server, t_visualizer, t_client, t_calibration)
 

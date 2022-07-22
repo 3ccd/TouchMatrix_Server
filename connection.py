@@ -63,6 +63,37 @@ class OSCServer:
             self.server.shutdown()
 
 
+class ObjTransmitter:
+
+    def __init__(self, ip="127.0.0.1", port=9001):
+        self.ip = ip
+        self.port = port
+        self.running = False
+        self.client = udp_client.SimpleUDPClient(self.ip, self.port)
+
+        self.lock = threading.Lock()
+        self.thread = None
+        self.running = False
+
+    def set_addr(self, ip, port):
+        self.ip = ip
+        self.port = port
+
+    def send_message(self, obj, event):
+        pass
+
+    def start_client(self):
+        print("Starting Obj Client")
+        self.running = True
+        self.client = udp_client.SimpleUDPClient(self.ip, self.port)
+        print("Sending on {}".format(self.ip))
+
+    def stop(self):
+        if self.running:
+            self.running = False
+            self.thread.join()
+
+
 class FrameTransmitter:
 
     def __init__(self, ip="127.0.0.1", port=9000):
@@ -116,7 +147,7 @@ class FrameTransmitter:
             time.sleep(0.05)
 
     def start_client(self):
-        print("Starting Client")
+        print("Starting Frame Client")
         self.running = True
         self.client = udp_client.SimpleUDPClient(self.ip, self.port)
         print("Sending on {}".format(self.ip))

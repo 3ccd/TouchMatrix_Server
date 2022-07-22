@@ -99,7 +99,7 @@ def detect_object(img):
 
 class Analyzer(threading.Thread):
 
-    def __init__(self, tm, calibration):
+    def __init__(self, tm, calibration, touch_tracker):
         """
         アナライザクラスのコンストラクタ
         :param tm: TmFrameインスタンス
@@ -139,7 +139,7 @@ class Analyzer(threading.Thread):
         self.touch_status = False
 
         self.latest_data = None
-        self.touch_tracker = TouchTracker()
+        self.touch_tracker = touch_tracker
 
     def __del__(self):
         self.stop()
@@ -156,17 +156,6 @@ class Analyzer(threading.Thread):
 
     def _call_draw_event(self, labels):
         self.draw_callback(labels)
-
-    def _call_object_event(self, event, position=(0, 0)):
-        if self.touch_callback is None:
-            return
-
-        if event == cv2.EVENT_MOUSEMOVE:
-            y = position[0] / self.plot_size[0]
-            x = position[1] / self.plot_size[1]
-            self.touch_callback(event, y, x)
-        else:
-            self.touch_callback(event, 0, 0)
 
     def set_grad(self, size, sd):
         self.grad_size = size
@@ -279,7 +268,7 @@ class Analyzer(threading.Thread):
         color_labels = color
         if len(peaks[0]) != self.plot_size[0] * self.plot_size[1]:
             for i in range(len(peaks[0])):
-                num = self.touch_tracker.update_touch((peaks[1][i], peaks[0][i]))
+                num = self.touch_tracker.update_touch(Touch(peaks[1][i], peaks[0][i]))
                 if num != -1:
                     cv2.drawMarker(color, (peaks[1][i], peaks[0][i]), color_list[num], markerType=cv2.MARKER_CROSS,
                                    markerSize=20, thickness=2,
@@ -293,25 +282,54 @@ class Analyzer(threading.Thread):
         self.disp3_img = cv2.resize(calc * 255, (self.plot_size[1], self.plot_size[0]), interpolation=cv2.INTER_NEAREST)
 
 
-class TouchTracker:
+class Object:
 
-    EVENT_TOUCH_UPDATE = 1
-    EVENT_TOUCH_UP = 2
+    def __init__(self, point, oid=-1):
+        self.point = point
+        self.oid = oid
+
+    def set_id(self, oid):
+        self.oid = oid
+
+
+class Touch(Object):
+
+    def __init__(self, point, oid=-1):
+        super(Touch, self).__init__(point, oid)
+
+
+class Blob(Object):
+
+    def __init__(self, point, point1, point2, shape,  oid=-1):
+        super(Blob, self).__init__(point, oid)
+        self.point1 = point1
+        self.point2 = point2
+        self.shape = np.zeros([16, 16], dtype=np.uint8)
+        self.set_shape(shape)
+
+    def set_shape(self, shape):
+        cv2.resize(shape, dsize=self.shape.shape, dst=self.shape)
+
+
+class ObjTracker:
+
+    EVENT_OBJ_UPDATE = 1
+    EVENT_OBJ_DELETE = 2
 
     def __init__(self):
-        self.touch_dict = {}
-        self.updated_id = {}
-        self.threshold = 40
-        self.max_detection = 10
-        self.touch_callback = None
+        self.touch_dict = {}        # idとオブジェクトの辞書
+        self.updated_id = {}        # 単一フレームで座標が更新されたid（毎フレーム初期化）
+        self.threshold = 40         # 同一オブジェクトと見なす距離
+        self.max_detection = 10     # 最大検出数
+        self.event_callback = None
 
-    def call_touch_event(self, tid, point, event):
-        if self.touch_callback is None:
+    def call_event(self, obj, event):
+        if self.event_callback is None:
             return
 
-        self.touch_callback(tid, point, event)
+        self.event_callback(obj, event)
 
-    def add_point(self, point):
+    def add_point(self, obj):
         """
         空きIDを検索し，挿入する
         :param point: タッチ座標
@@ -319,20 +337,21 @@ class TouchTracker:
         """
         for i in range(self.max_detection):
             if i not in self.touch_dict:
-                self.update_point(point, i)
+                self.update_point(obj, i)
                 return i
         return -1
 
-    def update_point(self, point, num):
+    def update_point(self, obj, num):
         """
         タッチ座標を更新する
-        :param point: タッチ座標
+        :param obj: 検出オブジェクト
         :param num: ID
         :return: None
         """
-        self.touch_dict[num] = point
+        obj.set_id(num)
+        self.touch_dict[num] = obj
         self.updated_id[num] = True
-        self.call_touch_event(num, point, self.EVENT_TOUCH_UPDATE)
+        self.call_event(obj, self.EVENT_OBJ_UPDATE)
 
     def end_frame(self):
         """
@@ -343,22 +362,22 @@ class TouchTracker:
         for i in range(self.max_detection):
             if i not in self.updated_id and i in self.touch_dict:
                 self.touch_dict.pop(i)
-                self.call_touch_event(i, (-1, -1), self.EVENT_TOUCH_UP)
+                self.call_event((-1, -1), self.EVENT_OBJ_DELETE)
                 clear_ids.append(i)
         self.updated_id.clear()
         return clear_ids
 
-    def update_touch(self, point):
+    def update_touch(self, obj):
         """
         タッチ座標を検索し，新規であれば挿入
         タッチ検出の最大値を超えれば-1が返る
-        :param point: タッチ座標
+        :param obj: 検出オブジェクト
         :return: ID
         """
         min_id = -1
         min_distance = 1000
         for num, p in self.touch_dict.items():
-            distance = math.sqrt(((point[0] - p[0]) ** 2) + ((point[1] - p[1]) ** 2))
+            distance = math.sqrt(((obj.x - p[0]) ** 2) + ((obj.y - p[1]) ** 2))
             if distance < self.threshold and\
                     distance < min_distance and\
                     num not in self.updated_id:
@@ -368,9 +387,9 @@ class TouchTracker:
 
         if min_id == -1:
             # 見つからなかった場合は新規に挿入
-            num = self.add_point(point)
+            num = self.add_point(obj)
             return num
         else:
             # 見つかった場合は更新
-            self.update_point(point, min_id)
+            self.update_point(obj, min_id)
             return min_id
