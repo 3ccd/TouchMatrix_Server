@@ -15,16 +15,16 @@ if __name__ == "__main__":
     t_touch_track = analyzer.ObjTracker()
     t_blob_track = analyzer.ObjTracker()
     t_server = connection.OSCServer(t_frame, "192.168.0.4")
-    t_client = connection.FrameTransmitter(ip='192.168.0.2')
+    t_frame_client = connection.FrameTransmitter(ip='192.168.0.2')
+    t_obj_client = connection.ObjTransmitter(ip='192.168.0.2')
     t_analyzer = analyzer.Analyzer(t_frame, t_calibration, t_touch_track, t_blob_track)
     t_visualizer = vis.Visualizer((320, 640))
-    t_view = controller.TmView(t_analyzer, t_server, t_visualizer, t_client, t_calibration)
+    t_view = controller.TmView(t_analyzer, t_server, t_visualizer, t_frame_client, t_calibration)
 
-    # set touch event callback
-    t_analyzer.set_touch_callback(t_visualizer.touch_event_from_analyzer)
-    t_analyzer.set_draw_callback(t_visualizer.set_object_image)
     # set draw event callback
-    t_visualizer.set_callback(t_client.set_frame)
+    t_visualizer.set_callback(t_frame_client.set_frame)
+    t_touch_track.event_callback = t_obj_client.send_message
+    t_blob_track.event_callback = t_obj_client.send_message
 
     # initialize demo contents instance
     # from demo import continuous_lines, turn_table, object_detection, object_scan, ocr, touch_send, synthesizer
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     # demo_detection = object_detection.ObjectDetection(t_visualizer)
     # demo_scan = object_scan.ObjectScan(t_visualizer)
     # demo_graphic = ocr.OCR(t_visualizer)
-    demo_touch = touch_send.TouchSend(t_visualizer, t_client)
+    demo_touch = touch_send.TouchSend(t_visualizer, t_frame_client)
     # demo_synth = synthesizer.Synthesizer(t_visualizer, t_client)
 
     # register demo contents
@@ -53,5 +53,5 @@ if __name__ == "__main__":
 
     t_analyzer.stop()
     t_server.stop()
-    t_client.stop()
+    t_frame_client.stop()
     t_visualizer.stop()

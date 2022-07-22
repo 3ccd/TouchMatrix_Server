@@ -127,6 +127,8 @@ class Analyzer(threading.Thread):
 
         self.__tm_frame = tm
         self.calibration = calibration
+        self.touch_tracker = touch_tracker
+        self.blob_tracker = blob_tracker
 
         self.running = True
 
@@ -151,13 +153,7 @@ class Analyzer(threading.Thread):
 
         self.set_grad(self.grad_size, 16)
 
-        self.touch_callback = None
-        self.draw_callback = None
-        self.touch_status = False
-
         self.latest_data = None
-        self.touch_tracker = touch_tracker
-        self.blob_tracker = blob_tracker
 
     def __del__(self):
         self.stop()
@@ -165,16 +161,6 @@ class Analyzer(threading.Thread):
     def stop(self):
         self.running = False
         self.join()
-
-    def set_touch_callback(self, callback):
-        self.touch_callback = callback
-        self.touch_tracker.touch_callback = self.touch_callback
-
-    def set_draw_callback(self, callback):
-        self.draw_callback = callback
-
-    def _call_draw_event(self, labels):
-        self.draw_callback(labels)
 
     def set_grad(self, size, sd):
         self.grad_size = size
@@ -325,7 +311,7 @@ class ObjTracker:
     def add_point(self, obj):
         """
         空きIDを検索し，挿入する
-        :param point: タッチ座標
+        :param obj: タッチ座標
         :return: 割り当てたID
         """
         for i in range(self.max_detection):
