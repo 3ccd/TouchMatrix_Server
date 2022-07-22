@@ -80,6 +80,11 @@ def detect_touch(img):
     tmp = np.ma.array(detected_peaks, mask=~(detected_peaks >= detected_peaks.max() * 0.2))
     peaks_index = np.where((tmp.mask != True))
 
+    touchs = []
+    if len(peaks_index[0]) > 20:
+        for i in range(len(peaks_index[0])):
+            touchs[i] = Touch(peaks_index[1][i], peaks_index[0][i])
+
     return peaks_index
 
 
@@ -94,12 +99,25 @@ def detect_object(img):
 
     tmp8bit = (tmp_img * 255).astype(np.uint8)  # 8bitのスケールへ変換
     ret, tmp = cv2.threshold(tmp8bit, 0, 255, cv2.THRESH_OTSU)
-    return tmp
+
+    retval, labels, stats, centroids = cv2.connectedComponentsWithStats(tmp)  # Labeling
+
+    # blobを抽出
+    blobs = []
+    for i in range(1, len(centroids)):
+        coordinate = stats[i]
+        center = centroids[i]
+        left_top = (coordinate[0], coordinate[1])
+        right_bottom = (coordinate[0] + coordinate[2], coordinate[1] + coordinate[3])
+        shape = tmp[left_top[1]:left_top[1] + right_bottom[1], left_top[0]:left_top[0] + right_bottom[0]]
+        blobs[i] = Blob(center, left_top, right_bottom, shape)
+
+    return blobs
 
 
 class Analyzer(threading.Thread):
 
-    def __init__(self, tm, calibration, touch_tracker):
+    def __init__(self, tm, calibration, touch_tracker, blob_tracker):
         """
         アナライザクラスのコンストラクタ
         :param tm: TmFrameインスタンス
@@ -140,6 +158,7 @@ class Analyzer(threading.Thread):
 
         self.latest_data = None
         self.touch_tracker = touch_tracker
+        self.blob_tracker = blob_tracker
 
     def __del__(self):
         self.stop()
@@ -239,47 +258,16 @@ class Analyzer(threading.Thread):
         tmpx = self.over_scan + self.plot_size[0]
         tmpy = self.over_scan + self.plot_size[1]
 
-        ret, tmp = cv2.threshold(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy],
-                                 float(self.threshold), 1.0, cv2.THRESH_BINARY)
-        peaks = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
-        obj = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
+        touchs = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
+        blobs = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
 
-        # kernel = np.ones((5, 5), np.uint8)
-        # tmp = cv2.dilate(tmp, kernel, iterations=5)
-        # tmp = cv2.erode(tmp, kernel, iterations=5)
+        for touch in touchs:
+            self.touch_tracker.update(touch)
+        self.touch_tracker.end_frame()
 
-        # tmp8bit = (tmp * 255).astype(np.uint8)  # 8bitのスケールへ変換
-        color = np.zeros((tmp.shape[0], tmp.shape[1], 3), np.uint8)  # 3chの画像を生成
-        cv2.cvtColor(obj.astype(np.uint8), cv2.COLOR_GRAY2RGB, color)  # RGB画像へ変換
-
-        # retval, labels, stats, centroids = cv2.connectedComponentsWithStats(obj)  # Labeling
-
-        # if len(centroids) > 1:
-        #     self._call_object_event(cv2.EVENT_MOUSEMOVE, centroids[1])
-        #     if self.touch_status is False:
-        #         self._call_object_event(cv2.EVENT_RBUTTONDOWN)
-        #         self.touch_status = True
-        # else:
-        #     if self.touch_status is True:
-        #         self._call_object_event(cv2.EVENT_RBUTTONUP)
-        #         self.touch_status = False
-
-        # color_labels = draw_centroids(color, centroids)
-        color_labels = color
-        if len(peaks[0]) != self.plot_size[0] * self.plot_size[1]:
-            for i in range(len(peaks[0])):
-                num = self.touch_tracker.update_touch(Touch(peaks[1][i], peaks[0][i]))
-                if num != -1:
-                    cv2.drawMarker(color, (peaks[1][i], peaks[0][i]), color_list[num], markerType=cv2.MARKER_CROSS,
-                                   markerSize=20, thickness=2,
-                                   line_type=cv2.LINE_8)
-            self.touch_tracker.end_frame()
-
-        self._call_draw_event(color_labels)
-
-        self.disp_img = color_labels
-        self.disp2_img = (self.plot_img * 255).astype(np.uint8)
-        self.disp3_img = cv2.resize(calc * 255, (self.plot_size[1], self.plot_size[0]), interpolation=cv2.INTER_NEAREST)
+        for blob in blobs:
+            self.blob_tracker.update(blob)
+        self.blob_tracker.end_frame()
 
 
 class Object:
@@ -367,7 +355,7 @@ class ObjTracker:
         self.updated_id.clear()
         return clear_ids
 
-    def update_touch(self, obj):
+    def update(self, obj):
         """
         タッチ座標を検索し，新規であれば挿入
         タッチ検出の最大値を超えれば-1が返る
