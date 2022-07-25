@@ -295,12 +295,24 @@ class ObjTracker:
     EVENT_OBJ_UPDATE = 1
     EVENT_OBJ_DELETE = 2
 
+    CONFIG_THRESHOLD = 1
+    CONFIG_DETECTION_MAX = 2
+
     def __init__(self):
         self.touch_dict = {}        # idとオブジェクトの辞書
         self.updated_id = {}        # 単一フレームで座標が更新されたid（毎フレーム初期化）
         self.threshold = 40         # 同一オブジェクトと見なす距離
         self.max_detection = 10     # 最大検出数
         self.event_callback = None
+
+    def config(self, cid, value):
+        if cid is self.CONFIG_THRESHOLD:
+            self.threshold = value
+        elif cid is self.CONFIG_DETECTION_MAX:
+            self.max_detection = value
+
+    def set_callback(self, callback):
+        self.event_callback = callback
 
     def call_event(self, obj, event):
         if self.event_callback is None:

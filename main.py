@@ -23,8 +23,8 @@ if __name__ == "__main__":
 
     # set draw event callback
     t_visualizer.set_callback(t_frame_client.set_frame)
-    t_touch_track.event_callback = t_obj_client.send_message
-    t_blob_track.event_callback = t_obj_client.send_message
+    t_touch_track.set_callback(t_obj_client.send_message)
+    t_blob_track.set_callback(t_obj_client.send_message)
 
     # initialize demo contents instance
     # from demo import continuous_lines, turn_table, object_detection, object_scan, ocr, touch_send, synthesizer
