@@ -2,16 +2,21 @@ import numpy as np
 
 
 class Calibration:
-    def __init__(self, tm_frame):
+    def __init__(self, tm_frame, test_mode=False):
         self.tm_frame = tm_frame
 
         self.cal_min = None
         self.cal_max = None
         self.range = None
 
+        self.test = test_mode
+
     def get_calibrated_data(self):
         if not self.is_calibration_available():
             return None
+
+        if self.test:
+            return self._generate_test_data()
 
         data = self.get_sensor_data()
 
@@ -28,16 +33,24 @@ class Calibration:
 
         return calc
 
+    def _generate_test_data(self):
+        tmp = np.linspace(0.0, 0.5, 121)
+        return tmp
+
     def get_range(self):
         return self.range
 
     def get_sensor_data(self):
+        if self.test:
+            return np.zeros(121)
         if self.tm_frame.n_array is None:
             print('Error: No Sensor data available (Check the connection to the Raspberry Pi)')
             return
         return self.tm_frame.n_array
 
     def is_calibration_available(self):
+        if self.test:
+            return True
         if self.range is None:
             return False
         return True

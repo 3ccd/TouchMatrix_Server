@@ -3,6 +3,8 @@ import time
 
 import numpy as np
 
+from tracker import Touch, Blob, ObjTracker
+
 from pythonosc import udp_client
 from pythonosc import dispatcher
 from pythonosc import osc_server
@@ -71,27 +73,35 @@ class ObjTransmitter:
         self.running = False
         self.client = udp_client.SimpleUDPClient(self.ip, self.port)
 
-        self.lock = threading.Lock()
-        self.thread = None
-        self.running = False
-
     def set_addr(self, ip, port):
         self.ip = ip
         self.port = port
 
     def send_message(self, obj, event):
-        pass
+        if not self.running:
+            return
+        if isinstance(obj, Touch):
+            base_path = "/touch/"+str(obj.oid)
+            if event is ObjTracker.EVENT_OBJ_UPDATE:
+                self.client.send_message(base_path + "/point", obj.point)
+            elif event is ObjTracker.EVENT_OBJ_DELETE:
+                self.client.send_message(base_path + "/delete", (-1, -1))
+
+        if isinstance(obj, Blob):
+            base_path = "/blob/" + str(obj.oid)
+            if event is ObjTracker.EVENT_OBJ_UPDATE:
+                self.client.send_message(base_path + "/point", obj.point)
+                self.client.send_message(base_path + "/bbox1", obj.point1)
+                self.client.send_message(base_path + "/bbox2", obj.point2)
+                self.client.send_message(base_path + "/contour", obj.shape.flatten().tolist())
+            if event is ObjTracker.EVENT_OBJ_DELETE:
+                self.client.send_message(base_path + "/delete", (-1, -1))
 
     def start_client(self):
         print("Starting Obj Client")
-        self.running = True
         self.client = udp_client.SimpleUDPClient(self.ip, self.port)
+        self.running = True
         print("Sending on {}".format(self.ip))
-
-    def stop(self):
-        if self.running:
-            self.running = False
-            self.thread.join()
 
 
 class FrameTransmitter:

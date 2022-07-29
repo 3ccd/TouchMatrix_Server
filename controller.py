@@ -39,6 +39,8 @@ class TmView(tk.Tk):
 
         self.canvas = None
         self.canvas2 = None
+        self.photo_image = None
+        self.photo_image2 = None
         self.demo_list = None
 
         self.init_control_frame()
@@ -57,9 +59,9 @@ class TmView(tk.Tk):
         self.fig = None
         self.ax = None
 
-        self.init_figure()
-        self.tim = 0
-        self.update_figure()
+        # self.init_figure()
+        # self.tim = 0
+        # self.update_figure()
 
         self.blank_image = np.zeros((160, 320, 3), dtype=np.uint8)
 

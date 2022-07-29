@@ -3,6 +3,7 @@ import controller
 import analyzer
 import calibration
 from demo import visualizer as vis
+from tracker import ObjTracker
 
 
 if __name__ == "__main__":
@@ -11,9 +12,9 @@ if __name__ == "__main__":
     t_frame = connection.TmFrame()
 
     # create instance
-    t_calibration = calibration.Calibration(t_frame)
-    t_touch_track = analyzer.ObjTracker()
-    t_blob_track = analyzer.ObjTracker()
+    t_calibration = calibration.Calibration(t_frame, True)
+    t_touch_track = ObjTracker()
+    t_blob_track = ObjTracker()
     t_server = connection.OSCServer(t_frame, "192.168.0.4")
     t_frame_client = connection.FrameTransmitter(ip='192.168.0.2')
     t_obj_client = connection.ObjTransmitter(ip='192.168.0.2')

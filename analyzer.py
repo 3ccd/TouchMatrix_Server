@@ -5,6 +5,8 @@ import numpy as np
 import cv2
 from scipy.ndimage import maximum_filter
 
+from tracker import Touch, Blob
+
 
 color_list = [
     (255, 255,   0),
@@ -78,14 +80,14 @@ def detect_touch(img):
     detected_peaks = np.ma.array(tmp_img, mask=~(tmp_img == local_max))
 
     tmp = np.ma.array(detected_peaks, mask=~(detected_peaks >= detected_peaks.max() * 0.2))
-    peaks_index = np.where((not tmp.mask))
+    peaks_index = np.where(~tmp.mask)
 
     touchs = []
     if len(peaks_index[0]) > 20:
         for i in range(len(peaks_index[0])):
-            touchs[i] = Touch(peaks_index[1][i], peaks_index[0][i])
+            touchs.append(Touch([peaks_index[1][i].item(), peaks_index[0][i].item()]))
 
-    return peaks_index
+    return touchs
 
 
 def detect_object(img):
@@ -107,10 +109,10 @@ def detect_object(img):
     for i in range(1, len(centroids)):
         coordinate = stats[i]
         center = centroids[i]
-        left_top = (coordinate[0], coordinate[1])
-        right_bottom = (coordinate[0] + coordinate[2], coordinate[1] + coordinate[3])
+        left_top = (coordinate[0].item(), coordinate[1].item())
+        right_bottom = (coordinate[0].item() + coordinate[2].item(), coordinate[1].item() + coordinate[3].item())
         shape = tmp[left_top[1]:left_top[1] + right_bottom[1], left_top[0]:left_top[0] + right_bottom[0]]
-        blobs[i] = Blob(center, left_top, right_bottom, shape)
+        blobs.append(Blob(center, left_top, right_bottom, shape))
 
     return blobs
 
@@ -260,127 +262,7 @@ class Analyzer(threading.Thread):
             self.blob_tracker.update(blob)
         self.blob_tracker.end_frame()
 
+        print(self.touch_tracker.get_detected())
 
-class Object:
-
-    def __init__(self, point, oid=-1):
-        self.point = point
-        self.oid = oid
-
-    def set_id(self, oid):
-        self.oid = oid
-
-
-class Touch(Object):
-
-    def __init__(self, point, oid=-1):
-        super(Touch, self).__init__(point, oid)
-
-
-class Blob(Object):
-
-    def __init__(self, point, point1, point2, shape,  oid=-1):
-        super(Blob, self).__init__(point, oid)
-        self.point1 = point1
-        self.point2 = point2
-        self.shape = np.zeros([16, 16], dtype=np.uint8)
-        self.set_shape(shape)
-
-    def set_shape(self, shape):
-        cv2.resize(shape, dsize=self.shape.shape, dst=self.shape)
-
-
-class ObjTracker:
-
-    EVENT_OBJ_UPDATE = 1
-    EVENT_OBJ_DELETE = 2
-
-    CONFIG_THRESHOLD = 1
-    CONFIG_DETECTION_MAX = 2
-
-    def __init__(self):
-        self.touch_dict = {}        # idとオブジェクトの辞書
-        self.updated_id = {}        # 単一フレームで座標が更新されたid（毎フレーム初期化）
-        self.threshold = 40         # 同一オブジェクトと見なす距離
-        self.max_detection = 10     # 最大検出数
-        self.event_callback = None
-
-    def config(self, cid, value):
-        if cid is self.CONFIG_THRESHOLD:
-            self.threshold = value
-        elif cid is self.CONFIG_DETECTION_MAX:
-            self.max_detection = value
-
-    def set_callback(self, callback):
-        self.event_callback = callback
-
-    def call_event(self, obj, event):
-        if self.event_callback is None:
-            return
-
-        self.event_callback(obj, event)
-
-    def add_point(self, obj):
-        """
-        空きIDを検索し，挿入する
-        :param obj: タッチ座標
-        :return: 割り当てたID
-        """
-        for i in range(self.max_detection):
-            if i not in self.touch_dict:
-                self.update_point(obj, i)
-                return i
-        return -1
-
-    def update_point(self, obj, num):
-        """
-        タッチ座標を更新する
-        :param obj: 検出オブジェクト
-        :param num: ID
-        :return: None
-        """
-        obj.set_id(num)
-        self.touch_dict[num] = obj
-        self.updated_id[num] = True
-        self.call_event(obj, self.EVENT_OBJ_UPDATE)
-
-    def end_frame(self):
-        """
-        更新されなかったIDを解放
-        :return: None
-        """
-        clear_ids = []
-        for i in range(self.max_detection):
-            if i not in self.updated_id and i in self.touch_dict:
-                self.touch_dict.pop(i)
-                self.call_event((-1, -1), self.EVENT_OBJ_DELETE)
-                clear_ids.append(i)
-        self.updated_id.clear()
-        return clear_ids
-
-    def update(self, obj):
-        """
-        タッチ座標を検索し，新規であれば挿入
-        タッチ検出の最大値を超えれば-1が返る
-        :param obj: 検出オブジェクト
-        :return: ID
-        """
-        min_id = -1
-        min_distance = 1000
-        for num, p in self.touch_dict.items():
-            distance = math.sqrt(((obj.x - p[0]) ** 2) + ((obj.y - p[1]) ** 2))
-            if distance < self.threshold and\
-                    distance < min_distance and\
-                    num not in self.updated_id:
-                # 閾値以下で，最短距離のタッチ座標を検索
-                min_distance = distance
-                min_id = num
-
-        if min_id == -1:
-            # 見つからなかった場合は新規に挿入
-            num = self.add_point(obj)
-            return num
-        else:
-            # 見つかった場合は更新
-            self.update_point(obj, min_id)
-            return min_id
+        self.disp_img = self.plot_img * 255
+        self.disp2_img = self.plot_img
