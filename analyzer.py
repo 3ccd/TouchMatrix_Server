@@ -83,7 +83,7 @@ def detect_touch(img):
     peaks_index = np.where(~tmp.mask)
 
     touchs = []
-    if len(peaks_index[0]) > 20:
+    if len(peaks_index[0]) < 10:
         for i in range(len(peaks_index[0])):
             touchs.append(Touch([peaks_index[1][i].item(), peaks_index[0][i].item()]))
 
@@ -156,6 +156,9 @@ class Analyzer(threading.Thread):
         self.set_grad(self.grad_size, 16)
 
         self.latest_data = None
+        self.time_stamp = time.time()
+        self.prev_time_stamp = time.time()
+        self.frame_rate = 0.0
 
     def __del__(self):
         self.stop()
@@ -178,6 +181,9 @@ class Analyzer(threading.Thread):
     def set_curve_param(self, gamma):
         self.gamma = gamma
 
+    def get_rate(self):
+        return 1.0 / (self.time_stamp - self.prev_time_stamp)
+
     def update_filter(self, sensor_data):
         """
         移動平均フィルタ
@@ -196,6 +202,8 @@ class Analyzer(threading.Thread):
         """
         while self.running:
             self.__loop()
+            self.prev_time_stamp = self.time_stamp
+            self.time_stamp = time.time()
             time.sleep(0.02)
 
     def __clear_plot(self):
@@ -261,8 +269,6 @@ class Analyzer(threading.Thread):
         for blob in blobs:
             self.blob_tracker.update(blob)
         self.blob_tracker.end_frame()
-
-        print(self.touch_tracker.get_detected())
 
         self.disp_img = self.plot_img * 255
         self.disp2_img = self.plot_img

@@ -9,6 +9,8 @@ from pythonosc import udp_client
 from pythonosc import dispatcher
 from pythonosc import osc_server
 
+import serial
+
 
 class TmFrame:
 
@@ -18,11 +20,84 @@ class TmFrame:
         self.n_array = None
 
     def add_pixel(self, index, value):
+        if index >= 121:
+            return
         self.frame_buffer[index] = value
 
     def finalize(self):
         self.available = True
         self.n_array = np.array(self.frame_buffer, np.uint16)
+
+
+class SerialServer:
+    def __init__(self, tm_frame, dev="/dev/ttyACM0", baud=115200):
+        self.dev = dev
+        self.baud = baud
+        self.running = False
+        self.buffer = tm_frame
+        self.ip = dev
+
+        self.read_data = []
+        self.prev_data = 0
+        self.reading = False
+        self.esc = False
+
+    def set_addr(self, ip, port):
+        self.dev = ip
+        self.baud = port
+
+    def set_buffer(self):
+        num = self.read_data[0]
+        value = (self.read_data[2] << 8) | self.read_data[3]
+
+        self.buffer.add_pixel(int(num), int(value))
+        if num == 120:
+            self.buffer.finalize()
+
+        self.read_data.clear()
+
+    def decode_slip(self, char):
+        # detect end packet
+        if char == 0xC0:
+            self.reading = True
+            return
+
+        if self.reading:
+            # detect escape packet
+            if char == 0xDB:
+                self.esc = True
+                return
+
+            # if escaping
+            if self.esc:
+                if char == 0xDC:
+                    self.read_data.append(0xC0)
+                if char == 0xDD:
+                    self.read_data.append(0xDB)
+                self.esc = False
+            else:
+                self.read_data.append(char)
+
+            if len(self.read_data) == 4:
+                self.set_buffer()
+                self.reading = False
+
+    def read(self):
+        with serial.Serial(self.dev, self.baud, timeout=1) as ser:
+            while self.running:
+                char = ser.read()
+                self.decode_slip(char)
+
+    def start_server(self):
+        print("Starting Server")
+        print("Serving on {}".format(self.dev))
+        thread = threading.Thread(target=self.read)
+        thread.start()
+        self.running = True
+
+    def stop(self):
+        if self.running:
+            self.running = False
 
 
 class OSCServer:

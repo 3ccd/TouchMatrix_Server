@@ -1,12 +1,11 @@
+import sys
+import time
 import tkinter as tk
 from PIL import Image, ImageTk, ImageOps
-
 import numpy as np
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-
-import sys
 
 
 class StdoutRedirector(object):
@@ -36,6 +35,7 @@ class TmView(tk.Tk):
         self.demo_frame = None
         self.view_frame = None
         self.figure_frame = None
+        self.stat_frame = None
 
         self.canvas = None
         self.canvas2 = None
@@ -47,7 +47,8 @@ class TmView(tk.Tk):
         self.init_setting_frame()
         self.init_view_frame()
         self.init_cal_frame()
-        self.init_demo_frame()
+        # self.init_demo_frame()
+        self.init_stat_frame()
         self.init_stdout_frame()
 
         self.img_type = 0
@@ -67,16 +68,16 @@ class TmView(tk.Tk):
 
         self.update()
         self.__update_image()
+        self.__update_stat()
 
-    def test(self, *args):
-        print('changed')
+    def init_stat_frame(self):
+        self.stat_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
+        self.stat_frame.grid(row=1, column=4, sticky=tk.N + tk.SW)
 
-    def init_demo_frame(self):
-        demo_frame = tk.Frame(self, pady=10, padx=10, relief=tk.GROOVE, bd=2)
-        demo_frame.grid(row=1, column=4, sticky=tk.N + tk.SW)
-        self.demo_list = tk.Listbox(demo_frame, width=40)
-        self.demo_list.bind('<<ListboxSelect>>', self.__select_demo)
-        self.demo_list.pack()
+        self.analyze_rate = tk.StringVar()
+        self.analyze_rate.set("---fps")
+        rate_label = tk.Label(self.stat_frame, textvariable=self.analyze_rate, width=40)
+        rate_label.pack()
 
     def init_stdout_frame(self):
         stdout_frame = tk.Frame(self, pady=10, padx=10)
@@ -220,14 +221,11 @@ class TmView(tk.Tk):
 
         self.figure_canvas.get_tk_widget().pack()
 
-    def insert_contents(self, content):
-        self.contents.append(content)
-        self.demo_list.insert('end', content.name)
+    def __update_stat(self):
 
-    def __select_demo(self, event):
-        self.visualizer.set_content(self.contents[event.widget.curselection()[0]])
-        if not self.visualizer.running:
-            self.visualizer.start()
+        self.analyze_rate.set(format(self.analyzer.get_rate(), "03.2f") + "fps")
+
+        self.stat_frame.after(500, self.__update_stat)
 
     def __update_image(self):
         if self.analyzer.disp_img is None:
