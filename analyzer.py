@@ -119,15 +119,13 @@ def detect_object(img):
 
 class Analyzer(threading.Thread):
 
-    def __init__(self, tm, calibration, touch_tracker, blob_tracker):
+    def __init__(self, calibration, touch_tracker, blob_tracker):
         """
         アナライザクラスのコンストラクタ
-        :param tm: TmFrameインスタンス
         :param calibration: Calibrationインスタンス
         """
         super().__init__(target=self.__call)
 
-        self.__tm_frame = tm
         self.calibration = calibration
         self.touch_tracker = touch_tracker
         self.blob_tracker = blob_tracker
@@ -137,6 +135,7 @@ class Analyzer(threading.Thread):
         self.curve_type = 0
         self.threshold = 0.3
         self.gamma = 0.7
+        self.gain = 1.0
 
         self.led_insert_pos = insert_led()
 
@@ -155,7 +154,6 @@ class Analyzer(threading.Thread):
 
         self.set_grad(self.grad_size, 16)
 
-        self.latest_data = None
         self.time_stamp = time.time()
         self.prev_time_stamp = time.time()
         self.frame_rate = 0.0
@@ -239,7 +237,7 @@ class Analyzer(threading.Thread):
         if not self.calibration.is_calibration_available():
             return
 
-        tmp = self.calibration.get_calibrated_data()
+        tmp = self.calibration.get_calibrated_data(gain=self.gain)
         calc = self.update_filter(tmp)
 
         # tone curve
@@ -262,13 +260,18 @@ class Analyzer(threading.Thread):
         touchs = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
         blobs = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
 
+        # touch handling
         for touch in touchs:
             self.touch_tracker.update(touch)
         self.touch_tracker.end_frame()
 
+        # blob handling
         for blob in blobs:
             self.blob_tracker.update(blob)
         self.blob_tracker.end_frame()
 
-        self.disp_img = self.plot_img * 255
-        self.disp2_img = self.plot_img
+        # exposure
+        self.gain += -0.01 * (np.count_nonzero(self.plot_img == 1.0) / (self.plot_size[0] * self.plot_size[1]))
+
+        self.disp_img = cv2.equalizeHist((self.plot_img * 255).astype(np.uint8))
+        self.disp2_img = self.plot_img * 255

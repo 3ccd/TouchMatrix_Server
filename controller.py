@@ -1,8 +1,8 @@
 import sys
-import time
 import tkinter as tk
 from PIL import Image, ImageTk, ImageOps
 import numpy as np
+import cv2
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -21,10 +21,9 @@ class StdoutRedirector(object):
 
 
 class TmView(tk.Tk):
-    def __init__(self, analyzer, server, visualizer, client, calibration):
+    def __init__(self, analyzer, server, client, calibration):
         self.analyzer = analyzer
         self.server = server
-        self.visualizer = visualizer
         self.client = client
         self.calibration = calibration
 
@@ -32,7 +31,6 @@ class TmView(tk.Tk):
         self.title("TouchMatrix Viewer")
 
         self.setting_frame = None
-        self.demo_frame = None
         self.view_frame = None
         self.figure_frame = None
         self.stat_frame = None
@@ -41,28 +39,15 @@ class TmView(tk.Tk):
         self.canvas2 = None
         self.photo_image = None
         self.photo_image2 = None
-        self.demo_list = None
 
         self.init_control_frame()
         self.init_setting_frame()
         self.init_view_frame()
         self.init_cal_frame()
-        # self.init_demo_frame()
         self.init_stat_frame()
         self.init_stdout_frame()
 
         self.img_type = 0
-
-        self.contents = list()
-        self.figure_canvas = None
-        self.figure_length = 100
-        self.figure_data = np.zeros(self.figure_length, np.uint16)
-        self.fig = None
-        self.ax = None
-
-        # self.init_figure()
-        # self.tim = 0
-        # self.update_figure()
 
         self.blank_image = np.zeros((160, 320, 3), dtype=np.uint8)
 
@@ -179,48 +164,6 @@ class TmView(tk.Tk):
         else:
             self.img_type = 0
 
-    def get_sensor_data(self, index):
-        if not self.calibration.is_calibration_available():
-            return 0
-        return self.calibration.get_sensor_data()[index]
-
-    def get_calibrate_data(self, index):
-        if not self.calibration.is_calibration_available():
-            return 0, 60000
-        cal_min = self.calibration.cal_min[index]
-        cal_max = self.calibration.cal_max[index]
-
-        return cal_min, cal_max
-
-    def add_sensor_data(self, data, data_array):
-        data_array = np.roll(data_array, -1)
-        data_array[self.figure_length - 1] = data
-        return data_array
-
-    def update_figure(self):
-        self.figure_data = self.add_sensor_data(self.get_sensor_data(60), self.figure_data)
-        fr_min, fr_max = self.get_calibrate_data(60)
-
-        self.ax.cla()
-        self.ax.grid()
-        self.ax.set_ylim([fr_min, fr_max])
-        self.ax.plot(self.figure_data)
-
-        self.figure_canvas.draw()
-
-        self.figure_frame.after(500, self.update_figure)
-
-    def init_figure(self):
-        self.fig = Figure(figsize=(3, 2))
-        self.figure_canvas = FigureCanvasTkAgg(self.fig, master=self.figure_frame)
-
-        self.ax = self.fig.add_subplot(111)
-        self.ax.grid()
-        self.ax.set_ylim([0, 65000])
-        self.ax.plot(self.figure_data)
-
-        self.figure_canvas.get_tk_widget().pack()
-
     def __update_stat(self):
 
         self.analyze_rate.set(format(self.analyzer.get_rate(), "03.2f") + "fps")
@@ -234,6 +177,7 @@ class TmView(tk.Tk):
             self.view_frame.after(1000, self.__update_image)
             return
 
+        # self.disp_image(cv2.applyColorMap(self.analyzer.disp_img.astype(np.uint8), cv2.COLORMAP_JET))
         self.disp_image(self.analyzer.disp_img)
         if self.img_type == 0:
             self.disp2_image(self.analyzer.disp2_img)
@@ -283,3 +227,59 @@ class TmView(tk.Tk):
             canvas_height / 2,
             image=self.photo_image2  # 表示画像データ
         )
+
+
+class SensorFigure(tk.Frame):
+
+    def __init__(self, root, calibration):
+        super().__init__(root, pady=10, padx=10, relief=tk.GROOVE, bd=2)
+        self.figure_canvas = None
+        self.figure_length = 100
+        self.figure_data = np.zeros(self.figure_length, np.uint16)
+        self.fig = None
+        self.ax = None
+        self.calibration = calibration
+
+        self.__init_figure()
+
+    def __get_sensor_data(self, index):
+        if not self.calibration.is_calibration_available():
+            return 0
+        return self.calibration.get_sensor_data()[index]
+
+    def __get_calibrate_data(self, index):
+        if not self.calibration.is_calibration_available():
+            return 0, 60000
+        cal_min = self.calibration.cal_min[index]
+        cal_max = self.calibration.cal_max[index]
+
+        return cal_min, cal_max
+
+    def __add_sensor_data(self, data, data_array):
+        data_array = np.roll(data_array, -1)
+        data_array[self.figure_length - 1] = data
+        return data_array
+
+    def update_figure(self):
+        self.figure_data = self.__add_sensor_data(self.__get_sensor_data(60), self.figure_data)
+        fr_min, fr_max = self.__get_calibrate_data(60)
+
+        self.ax.cla()
+        self.ax.grid()
+        self.ax.set_ylim([fr_min, fr_max])
+        self.ax.plot(self.figure_data)
+
+        self.figure_canvas.draw()
+
+        self.after(500, self.update_figure)
+
+    def __init_figure(self):
+        self.fig = Figure(figsize=(3, 2))
+        self.figure_canvas = FigureCanvasTkAgg(self.fig, master=self)
+
+        self.ax = self.fig.add_subplot(111)
+        self.ax.grid()
+        self.ax.set_ylim([0, 65000])
+        self.ax.plot(self.figure_data)
+
+        self.figure_canvas.get_tk_widget().pack()

@@ -1,6 +1,12 @@
 import numpy as np
 
 
+def generate_test_data():
+    # tmp = np.linspace(0.02, 1.0, 121)
+    tmp = np.random.rand(121)
+    return tmp
+
+
 class Calibration:
     def __init__(self, tm_frame, test_mode=False):
         self.tm_frame = tm_frame
@@ -11,18 +17,20 @@ class Calibration:
 
         self.test = test_mode
 
-    def get_calibrated_data(self):
+    def get_calibrated_data(self, gain=1.0):
         if not self.is_calibration_available():
             return None
 
         if self.test:
-            return self._generate_test_data()
+            return generate_test_data() * gain
 
         data = self.get_sensor_data()
 
         # replace out-of-range values (lower)
         data[data < self.cal_min] = self.cal_min[data < self.cal_min]
         offset = data - self.cal_min
+
+        offset *= gain
 
         # replace out-of-range values (upper)
         offset[offset > self.range] = self.range[offset > self.range]
@@ -32,10 +40,6 @@ class Calibration:
         calc[calc > 1.0] = 1.0
 
         return calc
-
-    def _generate_test_data(self):
-        tmp = np.linspace(0.0, 0.5, 121)
-        return tmp
 
     def get_range(self):
         return self.range
