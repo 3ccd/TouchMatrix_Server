@@ -8,20 +8,6 @@ from scipy.ndimage import maximum_filter
 from tracker import Touch, Blob
 
 
-color_list = [
-    (255, 255,   0),
-    (255,   0, 255),
-    (  0, 255, 255),
-    (255,   0,   0),
-    (  0, 255,   0),
-    (  0,   0, 255),
-    (255, 128, 128),
-    (128, 128, 255),
-    (128, 255, 128),
-    ( 64, 128, 255),
-]
-
-
 def gauss2d(size, sd):
     """
     ガウス分布のグラデーション画像の生成
@@ -82,12 +68,12 @@ def detect_touch(img):
     tmp = np.ma.array(detected_peaks, mask=~(detected_peaks >= detected_peaks.max() * 0.2))
     peaks_index = np.where(~tmp.mask)
 
-    touchs = []
+    touches = []
     if len(peaks_index[0]) < 10:
         for i in range(len(peaks_index[0])):
-            touchs.append(Touch([peaks_index[1][i].item(), peaks_index[0][i].item()]))
+            touches.append(Touch([peaks_index[1][i].item(), peaks_index[0][i].item()]))
 
-    return touchs
+    return touches
 
 
 def detect_object(img):
@@ -154,8 +140,8 @@ class Analyzer(threading.Thread):
 
         self.set_grad(self.grad_size, 16)
 
-        self.time_stamp = time.time()
-        self.prev_time_stamp = time.time()
+        self.time_stamp = 0.0
+        self.prev_time_stamp = -1.0
         self.frame_rate = 0.0
 
     def __del__(self):
@@ -257,11 +243,11 @@ class Analyzer(threading.Thread):
         tmpx = self.over_scan + self.plot_size[0]
         tmpy = self.over_scan + self.plot_size[1]
 
-        touchs = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
+        touches = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
         blobs = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
 
         # touch handling
-        for touch in touchs:
+        for touch in touches:
             self.touch_tracker.update(touch)
         self.touch_tracker.end_frame()
 

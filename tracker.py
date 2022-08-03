@@ -82,6 +82,9 @@ class ObjTracker:
                 return i - 1
         return self.max_detection
 
+    def get_objects(self):
+        return self.touch_dict
+
     def update_point(self, obj, num):
         """
         タッチ座標を更新する

@@ -2,8 +2,8 @@ import numpy as np
 
 
 def generate_test_data():
-    # tmp = np.linspace(0.02, 1.0, 121)
-    tmp = np.random.rand(121)
+    tmp = np.linspace(0.02, 1.0, 121)
+    # tmp = np.random.rand(121)
     return tmp
 
 

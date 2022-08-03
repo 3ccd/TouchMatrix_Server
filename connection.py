@@ -160,7 +160,7 @@ class ObjTransmitter:
             if event is ObjTracker.EVENT_OBJ_UPDATE:
                 self.client.send_message(base_path + "/point", obj.point)
             elif event is ObjTracker.EVENT_OBJ_DELETE:
-                self.client.send_message(base_path + "/delete", (-1, -1))
+                self.client.send_message(base_path + "/delete", [-1, -1])
 
         if isinstance(obj, Blob):
             base_path = "/blob/" + str(obj.oid)
@@ -170,7 +170,7 @@ class ObjTransmitter:
                 self.client.send_message(base_path + "/bbox2", obj.point2)
                 self.client.send_message(base_path + "/contour", obj.shape.flatten().tolist())
             if event is ObjTracker.EVENT_OBJ_DELETE:
-                self.client.send_message(base_path + "/delete", (-1, -1))
+                self.client.send_message(base_path + "/delete", [-1, -1])
 
     def start_client(self):
         print("Starting Obj Client")
