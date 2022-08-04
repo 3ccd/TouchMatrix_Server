@@ -17,20 +17,18 @@ class Calibration:
 
         self.test = test_mode
 
-    def get_calibrated_data(self, gain=1.0):
+    def get_calibrated_data(self):
         if not self.is_calibration_available():
             return None
 
         if self.test:
-            return generate_test_data() * gain
+            return generate_test_data()
 
         data = self.get_sensor_data()
 
         # replace out-of-range values (lower)
         data[data < self.cal_min] = self.cal_min[data < self.cal_min]
         offset = data - self.cal_min
-
-        offset *= gain
 
         # replace out-of-range values (upper)
         offset[offset > self.range] = self.range[offset > self.range]

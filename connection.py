@@ -19,14 +19,23 @@ class TmFrame:
         self.available = False
         self.n_array = None
 
+        self.time_stamp = 0.0
+        self.prev_time_stamp = -1.0
+
     def add_pixel(self, index, value):
         if index >= 121:
             return
         self.frame_buffer[index] = value
 
+    def get_rate(self):
+        return 1.0 / (self.time_stamp - self.prev_time_stamp)
+
     def finalize(self):
         self.available = True
         self.n_array = np.array(self.frame_buffer, np.uint16)
+
+        self.prev_time_stamp = self.time_stamp
+        self.time_stamp = time.time()
 
 
 class SerialServer:
@@ -47,10 +56,10 @@ class SerialServer:
         self.baud = port
 
     def set_buffer(self):
-        num = self.read_data[0]
-        value = (self.read_data[2] << 8) | self.read_data[3]
+        num = int.from_bytes(self.read_data[0], 'big')
+        value = (int.from_bytes(self.read_data[2], 'big') << 8) | int.from_bytes(self.read_data[3], 'big')
 
-        self.buffer.add_pixel(int(num), int(value))
+        self.buffer.add_pixel(num, value)
         if num == 120:
             self.buffer.finalize()
 
@@ -58,22 +67,22 @@ class SerialServer:
 
     def decode_slip(self, char):
         # detect end packet
-        if char == 0xC0:
+        if char == b'\xc0':
             self.reading = True
             return
 
         if self.reading:
             # detect escape packet
-            if char == 0xDB:
+            if char == b'\xdb':
                 self.esc = True
                 return
 
             # if escaping
             if self.esc:
-                if char == 0xDC:
-                    self.read_data.append(0xC0)
-                if char == 0xDD:
-                    self.read_data.append(0xDB)
+                if char == b'\xdc':
+                    self.read_data.append(b'\xc0')
+                if char == b'\xdd':
+                    self.read_data.append(b'\xdb')
                 self.esc = False
             else:
                 self.read_data.append(char)

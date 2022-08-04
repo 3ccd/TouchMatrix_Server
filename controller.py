@@ -23,11 +23,12 @@ class StdoutRedirector(object):
 
 
 class TmView(tk.Tk):
-    def __init__(self, analyzer, server, client, calibration):
+    def __init__(self, analyzer, server, client, calibration, frame):
         self.analyzer = analyzer
         self.server = server
         self.client = client
         self.calibration = calibration
+        self.frame = frame
 
         super().__init__()
         self.title("TouchMatrix Viewer")
@@ -65,6 +66,11 @@ class TmView(tk.Tk):
         self.analyze_rate.set("---fps")
         rate_label = tk.Label(self.stat_frame, textvariable=self.analyze_rate, width=40)
         rate_label.pack()
+
+        self.frame_rate = tk.StringVar()
+        self.frame_rate.set("---fps")
+        frame_label = tk.Label(self.stat_frame, textvariable=self.frame_rate, width=40)
+        frame_label.pack()
 
     def init_stdout_frame(self):
         stdout_frame = tk.Frame(self, pady=10, padx=10)
@@ -168,7 +174,8 @@ class TmView(tk.Tk):
 
     def __update_stat(self):
 
-        self.analyze_rate.set(format(self.analyzer.get_rate(), "03.2f") + "fps")
+        self.analyze_rate.set("Processing : " + format(self.analyzer.get_rate(), "03.2f") + "Hz")
+        self.frame_rate.set("Data Receiving : " + format(self.frame.get_rate(), "03.2f") + "Hz")
 
         self.stat_frame.after(100, self.__update_stat)
 
@@ -179,8 +186,8 @@ class TmView(tk.Tk):
             self.view_frame.after(1000, self.__update_image)
             return
 
-        # self.disp_image(cv2.applyColorMap(self.analyzer.disp_img.astype(np.uint8), cv2.COLORMAP_JET))
-        self.disp_image(self.analyzer.disp_img)
+        self.disp_image(cv2.applyColorMap(self.analyzer.disp_img.astype(np.uint8), cv2.COLORMAP_JET))
+        # self.disp_image(self.analyzer.disp_img)
         if self.img_type == 0:
             self.disp2_image(self.analyzer.disp2_img)
         else:

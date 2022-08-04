@@ -142,7 +142,6 @@ class Analyzer(threading.Thread):
 
         self.time_stamp = 0.0
         self.prev_time_stamp = -1.0
-        self.frame_rate = 0.0
 
     def __del__(self):
         self.stop()
@@ -188,7 +187,7 @@ class Analyzer(threading.Thread):
             self.__loop()
             self.prev_time_stamp = self.time_stamp
             self.time_stamp = time.time()
-            time.sleep(0.02)
+            time.sleep(0.005)
 
     def __clear_plot(self):
         """
@@ -223,7 +222,7 @@ class Analyzer(threading.Thread):
         if not self.calibration.is_calibration_available():
             return
 
-        tmp = self.calibration.get_calibrated_data(gain=self.gain)
+        tmp = self.calibration.get_calibrated_data()
         calc = self.update_filter(tmp)
 
         # tone curve
@@ -256,8 +255,5 @@ class Analyzer(threading.Thread):
             self.blob_tracker.update(blob)
         self.blob_tracker.end_frame()
 
-        # exposure
-        self.gain += -0.01 * (np.count_nonzero(self.plot_img == 1.0) / (self.plot_size[0] * self.plot_size[1]))
-
-        self.disp_img = cv2.equalizeHist((self.plot_img * 255).astype(np.uint8))
+        self.disp_img = self.plot_img * 255
         self.disp2_img = self.plot_img * 255
