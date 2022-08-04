@@ -7,6 +7,8 @@ import cv2
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
+import visualize
+
 
 class StdoutRedirector(object):
     def __init__(self, text_widget):
@@ -168,7 +170,7 @@ class TmView(tk.Tk):
 
         self.analyze_rate.set(format(self.analyzer.get_rate(), "03.2f") + "fps")
 
-        self.stat_frame.after(500, self.__update_stat)
+        self.stat_frame.after(100, self.__update_stat)
 
     def __update_image(self):
         if self.analyzer.disp_img is None:
