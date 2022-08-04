@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 
 
@@ -14,6 +16,8 @@ class Calibration:
         self.cal_min = None
         self.cal_max = None
         self.range = None
+
+        self.sample_count = 10
 
         self.test = test_mode
 
@@ -58,13 +62,22 @@ class Calibration:
         return True
 
     def calibration_lower(self):
-        self.cal_min = self.get_sensor_data()
+        tmp = np.zeros((121, self.sample_count), dtype=np.uint16)
+        for i in range(self.sample_count):
+            tmp[:, i] = self.get_sensor_data()
+            time.sleep(0.1)
+        self.cal_min = tmp.max(axis=1)
+
         print(self.cal_min)
 
     def calibration_upper(self):
-        self.cal_max = self.get_sensor_data()
-        print(self.cal_max)
+        tmp = np.zeros((121, self.sample_count), dtype=np.uint16)
+        for i in range(self.sample_count):
+            tmp[:, i] = self.get_sensor_data()
+            time.sleep(0.1)
+        self.cal_max = tmp.max(axis=1)
 
+        print(self.cal_max)
         self.calc_range()
 
     def calc_range(self):
