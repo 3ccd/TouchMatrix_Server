@@ -44,6 +44,8 @@ class ObjTracker:
 
     def __init__(self):
         self.touch_dict = {}        # idとオブジェクトの辞書
+        self.candidate = {}
+        self.remove_candidate = {}
         self.updated_id = {}        # 単一フレームで座標が更新されたid（毎フレーム初期化）
         self.threshold = 40         # 同一オブジェクトと見なす距離
         self.max_detection = 10     # 最大検出数
@@ -58,23 +60,11 @@ class ObjTracker:
     def set_callback(self, callback):
         self.event_callback = callback
 
-    def call_event(self, obj, event):
+    def __call_event(self, obj, event):
         if self.event_callback is None:
             return
 
         self.event_callback(obj, event)
-
-    def add_point(self, obj):
-        """
-        空きIDを検索し，挿入する
-        :param obj: タッチ座標
-        :return: 割り当てたID
-        """
-        for i in range(self.max_detection):
-            if i not in self.touch_dict:
-                self.update_point(obj, i)
-                return i
-        return -1
 
     def get_detected(self):
         for i in range(self.max_detection):
@@ -85,7 +75,19 @@ class ObjTracker:
     def get_objects(self):
         return self.touch_dict
 
-    def update_point(self, obj, num):
+    def __add_point(self, obj):
+        """
+        空きIDを検索し，挿入する
+        :param obj: タッチ座標
+        :return: 割り当てたID
+        """
+        for i in range(self.max_detection):
+            if i not in self.touch_dict:
+                self.__update_point(obj, i)
+                return i
+        return -1
+
+    def __update_point(self, obj, num):
         """
         タッチ座標を更新する
         :param obj: 検出オブジェクト
@@ -95,7 +97,7 @@ class ObjTracker:
         obj.set_id(num)
         self.touch_dict[num] = obj
         self.updated_id[num] = True
-        self.call_event(obj, self.EVENT_OBJ_UPDATE)
+        self.__call_event(obj, self.EVENT_OBJ_UPDATE)
 
     def end_frame(self):
         """
@@ -106,7 +108,7 @@ class ObjTracker:
         for i in range(self.max_detection):
             if i not in self.updated_id and i in self.touch_dict:
                 self.touch_dict.pop(i)
-                self.call_event((-1, -1), self.EVENT_OBJ_DELETE)
+                self.__call_event((-1, -1), self.EVENT_OBJ_DELETE)
                 clear_ids.append(i)
         self.updated_id.clear()
         return clear_ids
@@ -131,9 +133,9 @@ class ObjTracker:
 
         if min_id == -1:
             # 見つからなかった場合は新規に挿入
-            num = self.add_point(obj)
+            num = self.__add_point(obj)
             return num
         else:
             # 見つかった場合は更新
-            self.update_point(obj, min_id)
+            self.__update_point(obj, min_id)
             return min_id
