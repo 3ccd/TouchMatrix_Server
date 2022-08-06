@@ -170,7 +170,7 @@ class ObjTracker:
         # 候補でも，検出中でもない
         if candidate_id == -1 and detected_id == -1:
             self.updated_id[candidate_id] = 1
-            index = self.__add_object(obj, self.candidate)
+            self.__add_object(obj, self.candidate)
 
         # 候補で，まだ採用されていない
         elif candidate_id != -1 and detected_id == -1:
@@ -178,7 +178,7 @@ class ObjTracker:
             if self.updated_id[candidate_id] > self.lifetime_raising:
                 self.candidate.pop(candidate_id)
                 self.updated_id.pop(candidate_id)
-                index = self.__add_object(obj, self.touch_dict)
+                self.__add_object(obj, self.touch_dict)
             # 候補をアップデート
             else:
                 self.candidate[candidate_id] = obj
