@@ -6,7 +6,7 @@ import cv2
 class Object:
 
     def __init__(self, point, oid=-1):
-        self.point = point
+        self.point = (int(point[0]), int(point[1]))
         self.oid = oid
         self.x = point[1]
         self.y = point[0]
@@ -25,8 +25,8 @@ class Blob(Object):
 
     def __init__(self, point, point1, point2, shape,  oid=-1):
         super(Blob, self).__init__(point, oid)
-        self.point1 = point1
-        self.point2 = point2
+        self.point1 = (int(point1[0]), int(point1[1]))
+        self.point2 = (int(point2[0]), int(point2[1]))
         self.shape = np.zeros([16, 16], dtype=np.uint8)
         self.set_shape(shape)
 
@@ -73,7 +73,7 @@ class ObjTracker:
         return self.max_detection
 
     def get_objects(self):
-        return self.touch_dict
+        return self.touch_dict.copy()
 
     def __add_point(self, obj):
         """
@@ -107,11 +107,24 @@ class ObjTracker:
         clear_ids = []
         for i in range(self.max_detection):
             if i not in self.updated_id and i in self.touch_dict:
-                self.touch_dict.pop(i)
-                self.__call_event((-1, -1), self.EVENT_OBJ_DELETE)
+                obj = self.touch_dict.pop(i)
+                self.__call_event(obj, self.EVENT_OBJ_DELETE)
                 clear_ids.append(i)
         self.updated_id.clear()
         return clear_ids
+
+    def __search(self, obj, dic):
+        min_id = -1
+        min_distance = 1000
+        for num, p in dic.items():
+            distance = math.sqrt(((obj.x - p.x) ** 2) + ((obj.y - p.y) ** 2))
+            if distance < self.threshold and \
+                    distance < min_distance:
+                # 閾値以下で，最短距離のタッチ座標を検索
+                min_distance = distance
+                min_id = num
+
+        return min_id
 
     def update(self, obj):
         """
@@ -120,16 +133,9 @@ class ObjTracker:
         :param obj: 検出オブジェクト
         :return: ID
         """
-        min_id = -1
-        min_distance = 1000
-        for num, p in self.touch_dict.items():
-            distance = math.sqrt(((obj.x - p.x) ** 2) + ((obj.y - p.y) ** 2))
-            if distance < self.threshold and\
-                    distance < min_distance and\
-                    num not in self.updated_id:
-                # 閾値以下で，最短距離のタッチ座標を検索
-                min_distance = distance
-                min_id = num
+        # search candidate
+        candidate_id = self.__search(obj, self.candidate)
+        min_id = self.__search(obj, self.touch_dict)
 
         if min_id == -1:
             # 見つからなかった場合は新規に挿入

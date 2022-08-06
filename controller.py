@@ -186,10 +186,14 @@ class TmView(tk.Tk):
             self.view_frame.after(1000, self.__update_image)
             return
 
-        self.disp_image(cv2.applyColorMap(self.analyzer.disp_img.astype(np.uint8), cv2.COLORMAP_JET))
+        self.disp_image(cv2.applyColorMap(self.analyzer.disp_img.astype(np.uint8), cv2.COLORMAP_HSV))
         # self.disp_image(self.analyzer.disp_img)
         if self.img_type == 0:
-            self.disp2_image(self.analyzer.disp2_img)
+            tmp_img = self.analyzer.disp2_img.astype(np.uint8)
+            tmp_img = cv2.cvtColor(tmp_img, cv2.COLOR_GRAY2BGR)
+            visualize.visualize(tmp_img, self.analyzer.touch_tracker.get_objects(), (60, 60))
+            visualize.visualize(tmp_img, self.analyzer.blob_tracker.get_objects(), (60, 60))
+            self.disp2_image(tmp_img)
         else:
             self.disp2_image(self.analyzer.disp3_img)
 

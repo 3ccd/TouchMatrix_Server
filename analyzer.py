@@ -53,19 +53,20 @@ def draw_centroids(src_img, centroids):
     return centroids_img
 
 
-def detect_touch(img):
+def detect_touch(img, threshold=0.1):
     """
     グラデーション画像の局所最大値を計算
     :param img: グラデーション画像
+    :param threshold: threshold
     :return: 局所最大値を持つ画素の座標
     """
     tmp_img = img.copy()
-    tmp_img[tmp_img < 0.2] = 0.0        # ノイズの除去
+    tmp_img[tmp_img < 0.05] = 0.0        # ノイズの除去
 
     local_max = maximum_filter(tmp_img, footprint=np.ones((10, 10)), mode="constant")
     detected_peaks = np.ma.array(tmp_img, mask=~(tmp_img == local_max))
 
-    tmp = np.ma.array(detected_peaks, mask=~(detected_peaks >= detected_peaks.max() * 0.2))
+    tmp = np.ma.array(detected_peaks, mask=~(detected_peaks >= detected_peaks.max() * threshold))
     peaks_index = np.where(~tmp.mask)
 
     touches = []
@@ -76,14 +77,15 @@ def detect_touch(img):
     return touches
 
 
-def detect_object(img):
+def detect_object(img, threshold=0.1):
     """
     判別分析を用いた二値化
     :param img: グラデーション画像
+    :param threshold: threshold
     :return: 二値化画像
     """
     tmp_img = img.copy()
-    tmp_img[tmp_img < 0.2] = 0.0
+    tmp_img[tmp_img < threshold] = 0.0
 
     tmp8bit = (tmp_img * 255).astype(np.uint8)  # 8bitのスケールへ変換
     ret, tmp = cv2.threshold(tmp8bit, 0, 255, cv2.THRESH_OTSU)
@@ -130,7 +132,7 @@ class Analyzer(threading.Thread):
         self.sd = 16
         self.over_scan = 60
 
-        self.filter_buffer = np.zeros((3, 121))
+        self.filter_buffer = np.zeros((5, 121))
 
         self.grad_img = None
         self.plot_img = None
@@ -242,8 +244,8 @@ class Analyzer(threading.Thread):
         tmpx = self.over_scan + self.plot_size[0]
         tmpy = self.over_scan + self.plot_size[1]
 
-        touches = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
-        blobs = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy])
+        touches = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy], 0.1)
+        blobs = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy], 0.1)
 
         # touch handling
         for touch in touches:

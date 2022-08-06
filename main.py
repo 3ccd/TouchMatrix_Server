@@ -16,7 +16,8 @@ if __name__ == "__main__":
     t_touch_track = ObjTracker()
     t_blob_track = ObjTracker()
     # t_server = connection.OSCServer(t_frame, "192.168.0.4")
-    t_server = connection.SerialServer(t_frame, "/dev/ttyACM0", baud=403200)
+    t_server = connection.SerialServer(t_frame, "/dev/serial/by-id/usb-Raspberry_Pi_Pico_E66118C4E3359325-if00",
+                                       baud=403200)
     t_frame_client = connection.FrameTransmitter(ip='192.168.0.2')
     t_obj_client = connection.ObjTransmitter(ip='192.168.0.2')
     t_analyzer = analyzer.Analyzer(t_calibration, t_touch_track, t_blob_track)
