@@ -1,4 +1,6 @@
 import math
+import time
+
 import numpy as np
 import cv2
 
@@ -10,6 +12,7 @@ class Object:
         self.oid = oid
         self.x = point[1]
         self.y = point[0]
+        self.timestamp = 0.0
 
     def set_id(self, oid):
         self.oid = oid
@@ -44,12 +47,16 @@ class ObjTracker:
 
     def __init__(self):
         self.touch_dict = {}        # idとオブジェクトの辞書
-        self.candidate = {}
-        self.remove_candidate = {}
-        self.updated_id = {}        # 単一フレームで座標が更新されたid（毎フレーム初期化）
+        self.candidate = {}         # 追加予定のオブジェクト
+        self.updated_id = {}        # 候補に追加した時刻．IDとタイムスタンプのセット
+
+        self.lifetime_raising = 4   # 昇格するライフタイム
+        self.cleanup_threshold = 1.0
         self.threshold = 40         # 同一オブジェクトと見なす距離
         self.max_detection = 10     # 最大検出数
         self.event_callback = None
+
+        self.fixed_timestamp = 0.0
 
     def config(self, cid, value):
         if cid is self.CONFIG_THRESHOLD:
@@ -75,15 +82,14 @@ class ObjTracker:
     def get_objects(self):
         return self.touch_dict.copy()
 
-    def __add_point(self, obj):
+    def __search_next_index(self, dic):
         """
-        空きIDを検索し，挿入する
-        :param obj: タッチ座標
+        空きIDを検索
+        :param dic: 辞書
         :return: 割り当てたID
         """
         for i in range(self.max_detection):
-            if i not in self.touch_dict:
-                self.__update_point(obj, i)
+            if i not in dic:
                 return i
         return -1
 
@@ -95,23 +101,44 @@ class ObjTracker:
         :return: None
         """
         obj.set_id(num)
-        self.touch_dict[num] = obj
-        self.updated_id[num] = True
+        self.__add_object(obj, self.touch_dict)
         self.__call_event(obj, self.EVENT_OBJ_UPDATE)
+
+    def __add_object(self, obj, dic):
+        obj.timestamp = self.fixed_timestamp
+        index = self.__search_next_index(dic)
+        dic[index] = obj
+        return index
 
     def end_frame(self):
         """
-        更新されなかったIDを解放
+        フレーム終了の時間を記録
         :return: None
         """
-        clear_ids = []
-        for i in range(self.max_detection):
-            if i not in self.updated_id and i in self.touch_dict:
-                obj = self.touch_dict.pop(i)
-                self.__call_event(obj, self.EVENT_OBJ_DELETE)
-                clear_ids.append(i)
-        self.updated_id.clear()
-        return clear_ids
+        self.__cleanup(self.candidate)
+        cleaned = self.__cleanup(self.touch_dict, self.lifetime_raising)
+        for obj in cleaned:
+            self.__call_event(obj, self.EVENT_OBJ_DELETE)
+
+        prev_timestamp = self.fixed_timestamp
+        self.fixed_timestamp = time.time()
+
+        return prev_timestamp
+
+    def __cleanup(self, dic, threshold=None):
+        cleaned = []
+        for num, obj in dic.items():
+            # threshold　が指定なければ即削除
+            if threshold is None:
+                if self.fixed_timestamp != obj.timestamp:
+                    dic.pop(num)
+                    cleaned.append(obj)
+            else:
+                elapsed_time = self.fixed_timestamp - obj.timestamp
+                if elapsed_time > threshold:
+                    dic.pop(num)
+                    cleaned.append(obj)
+        return cleaned
 
     def __search(self, obj, dic):
         min_id = -1
@@ -133,15 +160,30 @@ class ObjTracker:
         :param obj: 検出オブジェクト
         :return: ID
         """
+        assert isinstance(obj, Object), "track error"
+
         # search candidate
         candidate_id = self.__search(obj, self.candidate)
-        min_id = self.__search(obj, self.touch_dict)
+        # search objects in detection
+        detected_id = self.__search(obj, self.touch_dict)
 
-        if min_id == -1:
-            # 見つからなかった場合は新規に挿入
-            num = self.__add_point(obj)
-            return num
-        else:
-            # 見つかった場合は更新
-            self.__update_point(obj, min_id)
-            return min_id
+        # 候補でも，検出中でもない
+        if candidate_id == -1 and detected_id == -1:
+            self.updated_id[candidate_id] = 1
+            index = self.__add_object(obj, self.candidate)
+
+        # 候補で，まだ採用されていない
+        elif candidate_id != -1 and detected_id == -1:
+            # 採用
+            if self.updated_id[candidate_id] > self.lifetime_raising:
+                self.candidate.pop(candidate_id)
+                self.updated_id.pop(candidate_id)
+                index = self.__add_object(obj, self.touch_dict)
+            # 候補をアップデート
+            else:
+                self.candidate[candidate_id] = obj
+                self.updated_id[candidate_id] += 1
+
+        # 検出中
+        elif candidate_id == -1 and detected_id != -1:
+            self.__update_point(obj, detected_id)
