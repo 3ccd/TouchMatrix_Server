@@ -50,9 +50,9 @@ class ObjTracker:
         self.candidate = {}         # 追加予定のオブジェクト
         self.updated_id = {}        # 候補に追加した時刻．IDとタイムスタンプのセット
 
-        self.lifetime_raising = 4   # 昇格するライフタイム
-        self.cleanup_threshold = 1.0
-        self.threshold = 40         # 同一オブジェクトと見なす距離
+        self.lifetime_raising = 20   # 昇格するライフタイム
+        self.cleanup_threshold = 0.2
+        self.threshold = 20         # 同一オブジェクトと見なす距離
         self.max_detection = 10     # 最大検出数
         self.event_callback = None
 
@@ -101,12 +101,15 @@ class ObjTracker:
         :return: None
         """
         obj.set_id(num)
-        self.__add_object(obj, self.touch_dict)
+        obj.timestamp = self.fixed_timestamp
+        self.touch_dict[num] = obj
         self.__call_event(obj, self.EVENT_OBJ_UPDATE)
 
     def __add_object(self, obj, dic):
-        obj.timestamp = self.fixed_timestamp
         index = self.__search_next_index(dic)
+        obj.set_id(index)
+        obj.timestamp = self.fixed_timestamp
+
         dic[index] = obj
         return index
 
@@ -127,17 +130,21 @@ class ObjTracker:
 
     def __cleanup(self, dic, threshold=None):
         cleaned = []
+        cleaned_id = []
         for num, obj in dic.items():
             # threshold　が指定なければ即削除
             if threshold is None:
                 if self.fixed_timestamp != obj.timestamp:
-                    dic.pop(num)
                     cleaned.append(obj)
+                    cleaned_id.append(num)
             else:
                 elapsed_time = self.fixed_timestamp - obj.timestamp
-                if elapsed_time > threshold:
-                    dic.pop(num)
+                if elapsed_time > self.cleanup_threshold:
                     cleaned.append(obj)
+                    cleaned_id.append(num)
+
+        for key in cleaned_id:
+            dic.pop(key)
         return cleaned
 
     def __search(self, obj, dic):
@@ -169,7 +176,8 @@ class ObjTracker:
 
         # 候補でも，検出中でもない
         if candidate_id == -1 and detected_id == -1:
-            self.updated_id[candidate_id] = 1
+            index = self.__search_next_index(self.updated_id)
+            self.updated_id[index] = 1
             self.__add_object(obj, self.candidate)
 
         # 候補で，まだ採用されていない

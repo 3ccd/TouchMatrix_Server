@@ -66,7 +66,7 @@ class Calibration:
         for i in range(self.sample_count):
             tmp[:, i] = self.get_sensor_data()
             time.sleep(0.1)
-        self.cal_min = tmp.max(axis=1) - 50
+        self.cal_min = tmp.max(axis=1, initial=0) - 50
 
         print(self.cal_min)
 
