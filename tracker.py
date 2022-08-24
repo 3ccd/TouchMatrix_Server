@@ -49,8 +49,9 @@ class ObjTracker:
         self.touch_dict = {}        # idとオブジェクトの辞書
         self.candidate = {}         # 追加予定のオブジェクト
         self.updated_id = {}        # 候補に追加した時刻．IDとタイムスタンプのセット
+        self.smoothing = {}         # smoothing coordinate
 
-        self.lifetime_raising = 20   # 昇格するライフタイム
+        self.lifetime_raising = 8   # 昇格するライフタイム
         self.cleanup_threshold = 0.2
         self.threshold = 20         # 同一オブジェクトと見なす距離
         self.max_detection = 10     # 最大検出数
@@ -73,11 +74,8 @@ class ObjTracker:
 
         self.event_callback(obj, event)
 
-    def get_detected(self):
-        for i in range(self.max_detection):
-            if i not in self.touch_dict:
-                return i - 1
-        return self.max_detection
+    def get_object_smoothing(self):
+        return self.smoothing.copy()
 
     def get_objects(self):
         return self.touch_dict.copy()

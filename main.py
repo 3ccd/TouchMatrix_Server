@@ -28,6 +28,8 @@ if __name__ == "__main__":
     t_blob_track.set_callback(t_obj_client.send_message)
     t_analyzer.start()
 
+    t_obj_client.start_client()
+
     # start gui
     t_view.mainloop()
 

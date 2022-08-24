@@ -151,7 +151,7 @@ class OSCServer:
 
 class ObjTransmitter:
 
-    def __init__(self, ip="127.0.0.1", port=9001):
+    def __init__(self, ip="127.0.0.1", port=9000):
         self.ip = ip
         self.port = port
         self.running = False
@@ -167,7 +167,7 @@ class ObjTransmitter:
         if isinstance(obj, Touch):
             base_path = "/touch/"+str(obj.oid)
             if event is ObjTracker.EVENT_OBJ_UPDATE:
-                self.client.send_message(base_path + "/point", obj.point)
+                self.client.send_message(base_path + "/point", [int(obj.y * 0.2), int(obj.x * 0.2)])
             elif event is ObjTracker.EVENT_OBJ_DELETE:
                 self.client.send_message(base_path + "/delete", [-1, -1])
 
@@ -190,7 +190,7 @@ class ObjTransmitter:
 
 class FrameTransmitter:
 
-    def __init__(self, ip="127.0.0.1", port=9000):
+    def __init__(self, ip="127.0.0.1", port=9001):
         self.ip = ip
         self.port = port
         self.frame_status = False
