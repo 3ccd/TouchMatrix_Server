@@ -169,7 +169,9 @@ class TmView(tk.Tk):
     def _change_image(self):
         if self.img_type == 0:
             self.img_type = 1
-        else:
+        elif self.img_type == 1:
+            self.img_type = 2
+        elif self.img_type == 2:
             self.img_type = 0
 
     def __update_stat(self):
@@ -191,11 +193,14 @@ class TmView(tk.Tk):
         if self.img_type == 0:
             tmp_img = self.analyzer.disp2_img.astype(np.uint8)
             tmp_img = cv2.cvtColor(tmp_img, cv2.COLOR_GRAY2BGR)
-            visualize.visualize(tmp_img, self.analyzer.touch_tracker.get_objects(), (60, 60))
-            visualize.visualize(tmp_img, self.analyzer.blob_tracker.get_objects(), (60, 60))
+            visualize.visualize(tmp_img, self.analyzer.touch_tracker.get_objects())
+            visualize.visualize(tmp_img, self.analyzer.blob_tracker.get_objects())
             self.disp2_image(tmp_img)
-        else:
+        elif self.img_type == 1:
             self.disp2_image(self.analyzer.disp3_img)
+        elif self.img_type == 2:
+            tmp_img = self.analyzer.disp2_img.astype(np.uint8)
+            self.disp2_image(tmp_img)
 
         self.view_frame.after(10, self.__update_image)
 

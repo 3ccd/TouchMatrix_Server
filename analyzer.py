@@ -257,5 +257,7 @@ class Analyzer(threading.Thread):
             self.blob_tracker.update(blob)
         self.blob_tracker.end_frame()
 
-        self.disp_img = self.plot_img * 255
-        self.disp2_img = self.plot_img * 255
+        self.disp_img = self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy] * 255
+        self.disp2_img = self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy] * 255
+        self.disp3_img = cv2.resize((calc * 700).astype(np.uint8), (320, 160), interpolation=cv2.INTER_NEAREST)
+        self.disp4_img = cv2.resize((calc * 255).astype(np.uint8), (320, 160), interpolation=cv2.INTER_NEAREST)

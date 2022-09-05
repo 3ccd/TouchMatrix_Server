@@ -21,7 +21,8 @@ color_list = [
 def visualize(img, t_dict, offset=(0, 0)):
     for key, obj in t_dict.items():
         if isinstance(obj, Touch):
-            cv2.drawMarker(img, (obj.point[0]+offset[0], obj.point[1] + offset[1]), color_list[key])
+            cv2.drawMarker(img, (obj.point[0]+offset[0], obj.point[1] + offset[1]), color_list[key], markerSize=30,
+                           thickness=2)
         if isinstance(obj, Blob):
             cv2.rectangle(img,
                           (obj.point1[0]+offset[0], obj.point1[1] + offset[1]),
