@@ -101,7 +101,7 @@ class Calibration:
 
     def save_data(self):
         if self.is_calibration_available():
-            np.savez("./cal_data", self.cal_min, self.cal_max, self.range)
+            np.savez("../cal_data", self.cal_min, self.cal_max, self.range)
             print('Info: Calibration data is saved as "cal_data.npz"')
         else:
             print('Error: Calibration required')
@@ -110,7 +110,7 @@ class Calibration:
         data = None
 
         try:
-            data = np.load("../cal_data.npz")
+            data = np.load("./cal_data.npz")
         except FileNotFoundError:
             print('Calibration file not found')
             return

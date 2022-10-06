@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     # create instance
     t_calibration = calibration.Calibration(t_frame, False)
-    t_server = connection.SerialServer(t_frame, "/dev/serial/by-id/usb-Raspberry_Pi_Pico_E66118C4E3359325-if00",
+    t_server = connection.SerialServer(t_frame, "COM3",
                                        baud=403200)
 
     fig, ax = plt.subplots(1, 1)
