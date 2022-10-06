@@ -1,8 +1,20 @@
 from classes import calibration, connection, controller, analyzer
 from classes.tracker import ObjTracker
 
+import json
+
+
+def load_setting():
+    with open('./settings.json') as f:
+        df = json.load(f)
+
+    return df
+
 
 if __name__ == "__main__":
+
+    # Load Settings
+    param = load_setting()
 
     # Sharing Data
     t_frame = connection.TmFrame()
@@ -12,7 +24,7 @@ if __name__ == "__main__":
     t_touch_track = ObjTracker()
     t_blob_track = ObjTracker()
     # t_server = connection.OSCServer(t_frame, "192.168.0.4")
-    t_server = connection.SerialServer(t_frame, "/dev/serial/by-id/usb-Raspberry_Pi_Pico_E66118C4E3359325-if00",
+    t_server = connection.SerialServer(t_frame, param["connection"]["sensor_addr"],
                                        baud=403200)
     t_frame_client = connection.FrameTransmitter(ip='192.168.0.2')
     t_obj_client = connection.ObjTransmitter(ip='192.168.0.2')
