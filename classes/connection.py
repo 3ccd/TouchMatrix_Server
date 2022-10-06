@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from tracker import Touch, Blob, ObjTracker
+from classes.tracker import Touch, Blob, ObjTracker
 
 from pythonosc import udp_client
 from pythonosc import dispatcher

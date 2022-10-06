@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-from tracker import Touch, Blob
+from classes.tracker import Touch, Blob
 
 
 color_list = [

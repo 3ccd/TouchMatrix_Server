@@ -7,7 +7,7 @@ import cv2
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
-import visualize
+import classes.visualize
 
 
 class StdoutRedirector(object):

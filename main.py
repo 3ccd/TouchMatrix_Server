@@ -1,9 +1,5 @@
-import connection
-import controller
-import analyzer
-import calibration
-from demo import visualizer as vis
-from tracker import ObjTracker
+from classes import calibration, connection, controller, analyzer
+from classes.tracker import ObjTracker
 
 
 if __name__ == "__main__":
