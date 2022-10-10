@@ -144,7 +144,7 @@ class Analyzer(threading.Thread):
         self.sd = 16
         self.over_scan = 60
 
-        self.filter_buffer = np.zeros((5, 121))
+        self.filter_buffer = np.zeros((7, 121))
 
         self.grad_img = None
         self.plot_img = None

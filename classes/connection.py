@@ -92,10 +92,11 @@ class SerialServer:
                 self.reading = False
 
     def read(self):
-        with serial.Serial(self.dev, self.baud, timeout=1) as ser:
-            while self.running:
-                char = ser.read()
-                self.decode_slip(char)
+        ser = serial.Serial(self.dev, self.baud, timeout=1)
+        while self.running:
+            char = ser.read()
+            self.decode_slip(char)
+        ser.close()
 
     def start_server(self):
         print("Starting Server")
