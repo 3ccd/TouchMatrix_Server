@@ -15,24 +15,26 @@ import serial
 class TmFrame:
 
     def __init__(self):
-        self.frame_buffer = np.zeros(121, np.uint16)
+        self.frame_buffer = np.zeros((121, 5), np.uint16)
         self.available = False
         self.n_array = None
+        self.n_array_4led = None
 
         self.time_stamp = 0.0
         self.prev_time_stamp = -1.0
 
-    def add_pixel(self, index, value):
+    def add_pixel(self, index, value, mode):
         if index >= 121:
             return
-        self.frame_buffer[index] = value
+        self.frame_buffer[index, mode] = value
 
     def get_rate(self):
         return 1.0 / (self.time_stamp - self.prev_time_stamp)
 
     def finalize(self):
         self.available = True
-        self.n_array = np.array(self.frame_buffer, np.uint16)
+        self.n_array = np.array(self.frame_buffer[:, 0], np.uint16)
+        self.n_array_4led = np.array(self.frame_buffer[:, 1:5], np.uint16)
 
         self.prev_time_stamp = self.time_stamp
         self.time_stamp = time.time()
@@ -57,10 +59,11 @@ class SerialServer:
 
     def set_buffer(self):
         num = int.from_bytes(self.read_data[0], 'big')
+        mode = int.from_bytes(self.read_data[1], 'big')
         value = (int.from_bytes(self.read_data[2], 'big') << 8) | int.from_bytes(self.read_data[3], 'big')
 
-        self.buffer.add_pixel(num, value)
-        if num == 120:
+        self.buffer.add_pixel(num, value, mode)
+        if num == 120 and mode == 4:
             self.buffer.finalize()
 
         self.read_data.clear()
