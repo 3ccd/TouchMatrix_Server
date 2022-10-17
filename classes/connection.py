@@ -29,6 +29,8 @@ class TmFrame:
         self.frame_buffer[index, mode] = value
 
     def get_rate(self):
+        if self.time_stamp - self.prev_time_stamp == 0.0:
+            return 1.0
         return 1.0 / (self.time_stamp - self.prev_time_stamp)
 
     def finalize(self):

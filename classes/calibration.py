@@ -117,7 +117,7 @@ class Calibration:
         data = None
 
         try:
-            data = np.load("./cal_data.npz")
+            data = np.load("../cal_data.npz")
         except FileNotFoundError:
             print('Calibration file not found')
             return

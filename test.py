@@ -58,6 +58,7 @@ if __name__ == "__main__":
         cv2.imshow("nearest", nearest)
 
         bicubic = cv2.resize(pos, (64, 64), interpolation=cv2.INTER_CUBIC)
+        bicubic = cv2.blur(bicubic, ksize=(5, 5))
         bicubic = cv2.resize(bicubic, (640, 640), interpolation=cv2.INTER_NEAREST)
         cv2.imshow("bicubic", bicubic)
         cv2.waitKey(10)

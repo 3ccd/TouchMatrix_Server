@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="420mm"
+   height="297mm"
+   viewBox="0 0 420 297"
+   version="1.1"
+   id="svg116"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   sodipodi:docname="marble_fixer_for_touchmatrix_v2.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview118"
+     pagecolor="#ffffff"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0.3254902"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     showgrid="true"
+     inkscape:zoom="1.1383002"
+     inkscape:cx="870.15706"
+     inkscape:cy="451.55046"
+     inkscape:window-width="1920"
+     inkscape:window-height="1017"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1">
+    <inkscape:grid
+       type="xygrid"
+       id="grid964" />
+  </sodipodi:namedview>
+  <defs
+     id="defs113" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#000000;stroke-width:0.264583"
+       id="rect120"
+       width="340"
+       x="22.256756"
+       y="121.49999" />
+    <g
+       id="g1017">
+      <path
+         id="rect962"
+         style="fill:none;stroke:#ff0000;stroke-width:0.212877"
+         d="M 78.593136 90.000191 C 73.832548 90.000191 69.999862 93.832362 69.999862 98.592948 L 69.999862 131.40697 C 69.999862 136.16754 73.832548 140.00024 78.593136 140.00024 L 386.40691 140.00024 C 391.16748 140.00024 395.00018 136.16754 395.00018 131.40697 L 395.00018 98.592948 C 395.00018 93.832362 391.16748 90.000191 386.40691 90.000191 L 370.00015 90.000191 L 370.00015 100.0001 L 384.99976 100.0001 L 384.99976 117.00009 L 284.86737 117.00009 L 284.86737 122.07834 L 264.36733 122.07834 L 264.36733 117.00009 L 200.6322 117.00009 L 200.6322 122.07834 L 180.13216 122.07834 L 180.13216 117.00009 L 79.999768 117.00009 L 79.999768 100.0001 L 94.999886 100.0001 L 94.999886 90.000191 L 78.593136 90.000191 z " />
+    </g>
+  </g>
+</svg>
