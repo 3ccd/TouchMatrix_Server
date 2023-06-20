@@ -5,7 +5,19 @@ import numpy as np
 import cv2
 from scipy.ndimage import maximum_filter
 
-from tracker import Touch, Blob
+from classes.tracker import Touch, Blob
+
+
+def intr(sensor_data):
+    pos = np.zeros((16, 16))
+    line_start_x = [5, 4, 4, 3, 3, 2, 2, 1, 1, 0, 0]
+    line_start_y = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5]
+    for i in range(121):
+        line = int(i / 11)
+        cnt = i % 11
+        pos[line_start_x[line] + cnt, line_start_y[line] + cnt] = sensor_data[i]
+
+    return pos
 
 
 def gauss2d(size, sd):
@@ -106,7 +118,9 @@ def detect_object(img, threshold=0.1):
         left_top = (coordinate[0].item(), coordinate[1].item())
         right_bottom = (coordinate[0].item() + coordinate[2].item(), coordinate[1].item() + coordinate[3].item())
         shape = tmp[left_top[1]:left_top[1] + right_bottom[1], left_top[0]:left_top[0] + right_bottom[0]]
-        blobs.append(Blob(center, left_top, right_bottom, shape))
+
+        if right_bottom[1] - left_top[1] > 100 and right_bottom[0] - left_top[1] > 100:
+            blobs.append(Blob(center, left_top, right_bottom, shape))
 
     return blobs
 
@@ -242,6 +256,8 @@ class Analyzer(threading.Thread):
             calc = (calc * 3)
         calc[calc > 1.0] = 1.0
 
+        intr(calc)
+
         calc = np.insert(calc, self.led_insert_pos, 0)
         calc = np.reshape(calc, (11, 22))
 
@@ -268,3 +284,4 @@ class Analyzer(threading.Thread):
         self.disp2_img = self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy] * 255
         self.disp3_img = cv2.resize((calc * 700).astype(np.uint8), (320, 160), interpolation=cv2.INTER_NEAREST)
         self.disp4_img = cv2.resize((calc * 255).astype(np.uint8), (320, 160), interpolation=cv2.INTER_NEAREST)
+

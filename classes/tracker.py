@@ -34,7 +34,8 @@ class Blob(Object):
         self.set_shape(shape)
 
     def set_shape(self, shape):
-        cv2.resize(shape, dsize=self.shape.shape, dst=self.shape)
+        if shape.shape[0] > 10 and shape.shape[1] > 10:
+            cv2.resize(shape, dsize=self.shape.shape, dst=self.shape)
 
 
 class ObjTracker:
