@@ -176,10 +176,11 @@ class ObjTransmitter:
         if isinstance(obj, Blob):
             base_path = "/blob/" + str(obj.oid)
             if event is ObjTracker.EVENT_OBJ_UPDATE:
-                self.client.send_message(base_path + "/point", obj.point)
-                self.client.send_message(base_path + "/bbox1", obj.point1)
-                self.client.send_message(base_path + "/bbox2", obj.point2)
-                self.client.send_message(base_path + "/contour", obj.shape.flatten().tolist())
+                self.client.send_message(base_path + "/point",
+                                         obj.point +
+                                         obj.point1 +
+                                         obj.point2 +
+                                         obj.shape.flatten().tolist())
             if event is ObjTracker.EVENT_OBJ_DELETE:
                 self.client.send_message(base_path + "/delete", [-1, -1])
 
