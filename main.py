@@ -31,7 +31,7 @@ if __name__ == "__main__":
     t_server = connection.SerialServer(t_frame, param["connection"]["sensor_addr"],
                                        baud=403200)
     # t_frame_client = connection.FrameTransmitter(ip='192.168.0.2')
-    t_obj_client = connection.ObjTransmitter(ip='192.168.0.2')
+    t_obj_client = connection.ObjTransmitter(ip=param["connection"]["obj_ip"])
     t_analyzer = analyzer.Analyzer(t_calibration, t_touch_track, t_blob_track)
     t_view = controller.TmView(t_analyzer, t_server, t_obj_client, t_calibration, t_frame)
 

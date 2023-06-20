@@ -53,7 +53,7 @@ def draw_centroids(src_img, centroids):
     return centroids_img
 
 
-def detect_touch(img, threshold=0.1):
+def detect_touch(img, mask_blobs, threshold=0.1):
     """
     グラデーション画像の局所最大値を計算
     :param img: グラデーション画像
@@ -61,7 +61,10 @@ def detect_touch(img, threshold=0.1):
     :return: 局所最大値を持つ画素の座標
     """
     tmp_img = img.copy()
-    tmp_img[tmp_img < 0.05] = 0.0        # ノイズの除去
+    for blob in mask_blobs:
+        tmp_img[blob.point1[1]:blob.point2[1], blob.point1[0]:blob.point2[0]] = 0.0
+    tmp_img[tmp_img > 0.9] = 0.0
+    tmp_img[tmp_img < 0.05] = 0.0  # ノイズの除去
 
     local_max = maximum_filter(tmp_img, footprint=np.ones((10, 10)), mode="constant")
     detected_peaks = np.ma.array(tmp_img, mask=~(tmp_img == local_max))
@@ -70,10 +73,13 @@ def detect_touch(img, threshold=0.1):
     peaks_index = np.where(~tmp.mask)
 
     touches = []
-    if len(peaks_index[0]) < 10:
-        for i in range(len(peaks_index[0])):
-            touches.append(Touch([peaks_index[1][i].item(), peaks_index[0][i].item()]))
+    if len(peaks_index[0]) > 5000:
+        return touches
 
+    for i in range(len(peaks_index[0])):
+        touches.append(Touch([peaks_index[1][i].item(), peaks_index[0][i].item()]))
+        if i > 10:
+            break
     return touches
 
 
@@ -132,7 +138,7 @@ class Analyzer(threading.Thread):
         self.sd = 16
         self.over_scan = 60
 
-        self.filter_buffer = np.zeros((5, 121))
+        self.filter_buffer = np.zeros((3, 121))
 
         self.grad_img = None
         self.plot_img = None
@@ -189,7 +195,7 @@ class Analyzer(threading.Thread):
             self.__loop()
             self.prev_time_stamp = self.time_stamp
             self.time_stamp = time.time()
-            time.sleep(0.005)
+            time.sleep(0.01)
 
     def __clear_plot(self):
         """
@@ -224,8 +230,8 @@ class Analyzer(threading.Thread):
         if not self.calibration.is_calibration_available():
             return
 
-        tmp = self.calibration.get_calibrated_data()
-        calc = self.update_filter(tmp)
+        calc = self.calibration.get_calibrated_data()
+        # calc = self.update_filter(tmp)
 
         # tone curve
         if self.curve_type == 1:
@@ -244,7 +250,8 @@ class Analyzer(threading.Thread):
         tmpx = self.over_scan + self.plot_size[0]
         tmpy = self.over_scan + self.plot_size[1]
 
-        touches = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy], 0.1)
+        mask_blobs = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy], 0.5)
+        touches = detect_touch(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy], mask_blobs, 0.05)
         blobs = detect_object(self.plot_img[self.over_scan:tmpx, self.over_scan:tmpy], 0.1)
 
         # touch handling

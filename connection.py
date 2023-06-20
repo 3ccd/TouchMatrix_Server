@@ -1,4 +1,5 @@
 import threading
+
 import time
 
 import numpy as np
@@ -28,7 +29,8 @@ class TmFrame:
         self.frame_buffer[index] = value
 
     def get_rate(self):
-        return 1.0 / (self.time_stamp - self.prev_time_stamp)
+        return 1
+        # return 1.0 / (self.time_stamp - self.prev_time_stamp)
 
     def finalize(self):
         self.available = True
