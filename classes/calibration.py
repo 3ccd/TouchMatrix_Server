@@ -10,9 +10,6 @@ class Calibration:
         self.cal_max = None
         self.range = None
 
-        self.cal_min_4led = np.zeros((121, 4), dtype=np.uint16)
-        self.cal_max_4led = np.zeros((121, 4), dtype=np.uint16)
-
         self.sample_count = 10
 
     def get_calibrated_data(self):
@@ -47,7 +44,7 @@ class Calibration:
         for i in range(self.sample_count):
             tmp[:, i] = src
             time.sleep(0.1)
-        return tmp.max(axis=1, initial=0) - 50
+        return tmp.max(axis=1, initial=0) + 50
 
     def calibration_lower(self):
         if self.tm_frame.n_array is None:
@@ -56,34 +53,12 @@ class Calibration:
         self.cal_min = self.__cal_data(self.tm_frame.n_array)
         print(self.cal_min)
 
-        if self.tm_frame.n_array_4led is not None:
-            print('Info: 4LED Mode')
-            self.cal_min_4led[:, 0] = self.__cal_data(self.tm_frame.n_array_4led[:, 0])
-            print('Info: cal n')
-            self.cal_min_4led[:, 1] = self.__cal_data(self.tm_frame.n_array_4led[:, 1])
-            print('Info: cal w')
-            self.cal_min_4led[:, 2] = self.__cal_data(self.tm_frame.n_array_4led[:, 2])
-            print('Info: cal e')
-            self.cal_min_4led[:, 3] = self.__cal_data(self.tm_frame.n_array_4led[:, 3])
-            print('Info: cal s')
-
     def calibration_upper(self):
         if self.tm_frame.n_array is None:
             print('Error: No Sensor data available (Check the connection to the Raspberry Pi)')
             return
         self.cal_max = self.__cal_data(self.tm_frame.n_array)
         print(self.cal_max)
-
-        if self.tm_frame.n_array_4led is not None:
-            print('Info: 4LED Mode')
-            self.cal_max_4led[:, 0] = self.__cal_data(self.tm_frame.n_array_4led[:, 0])
-            print('Info: cal n')
-            self.cal_max_4led[:, 1] = self.__cal_data(self.tm_frame.n_array_4led[:, 1])
-            print('Info: cal w')
-            self.cal_max_4led[:, 2] = self.__cal_data(self.tm_frame.n_array_4led[:, 2])
-            print('Info: cal e')
-            self.cal_max_4led[:, 3] = self.__cal_data(self.tm_frame.n_array_4led[:, 3])
-            print('Info: cal s')
 
         self.calc_range()
 

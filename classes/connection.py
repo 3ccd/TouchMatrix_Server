@@ -165,6 +165,7 @@ class ObjTransmitter:
 
     def send_message(self, obj, event):
         if not self.running:
+
             return
         if isinstance(obj, Touch):
             base_path = "/touch/"+str(obj.oid)
@@ -177,9 +178,9 @@ class ObjTransmitter:
             base_path = "/blob/" + str(obj.oid)
             if event is ObjTracker.EVENT_OBJ_UPDATE:
                 self.client.send_message(base_path + "/point",
-                                         obj.point +
-                                         obj.point1 +
-                                         obj.point2 +
+                                         list(obj.point) +
+                                         list(obj.point1) +
+                                         list(obj.point2) +
                                          obj.shape.flatten().tolist())
             if event is ObjTracker.EVENT_OBJ_DELETE:
                 self.client.send_message(base_path + "/delete", [-1, -1])
