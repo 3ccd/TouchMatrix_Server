@@ -119,7 +119,7 @@ def detect_object(img, threshold=0.1):
         right_bottom = (coordinate[0].item() + coordinate[2].item(), coordinate[1].item() + coordinate[3].item())
         shape = tmp[left_top[1]:left_top[1] + right_bottom[1], left_top[0]:left_top[0] + right_bottom[0]]
 
-        if right_bottom[1] - left_top[1] > 100 and right_bottom[0] - left_top[1] > 100:
+        if right_bottom[1] - left_top[1] > 20 and right_bottom[0] - left_top[1] > 20:
             blobs.append(Blob(center, left_top, right_bottom, shape))
 
     return blobs

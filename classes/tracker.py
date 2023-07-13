@@ -52,10 +52,10 @@ class ObjTracker:
         self.updated_id = {}        # 候補に追加した時刻．IDとタイムスタンプのセット
         self.smoothing = {}         # smoothing coordinate
 
-        self.lifetime_raising = 4   # 昇格するライフタイム
+        self.lifetime_raising = 2   # 昇格するライフタイム
         self.cleanup_threshold = 0.2
-        self.threshold = 30         # 同一オブジェクトと見なす距離
-        self.max_detection = 10     # 最大検出数
+        self.threshold = 40         # 同一オブジェクトと見なす距離
+        self.max_detection = 5     # 最大検出数
         self.event_callback = None
 
         self.fixed_timestamp = 0.0

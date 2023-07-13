@@ -170,7 +170,7 @@ class ObjTransmitter:
         if isinstance(obj, Touch):
             base_path = "/touch/"+str(obj.oid)
             if event is ObjTracker.EVENT_OBJ_UPDATE:
-                self.client.send_message(base_path + "/point", [int(obj.y * 0.2), int(obj.x * 0.2)])
+                self.client.send_message(base_path + "/point", obj.point)
             elif event is ObjTracker.EVENT_OBJ_DELETE:
                 self.client.send_message(base_path + "/delete", [-1, -1])
 
@@ -182,6 +182,7 @@ class ObjTransmitter:
                                          list(obj.point1) +
                                          list(obj.point2) +
                                          obj.shape.flatten().tolist())
+                print(obj.shape.flatten().tolist())
             if event is ObjTracker.EVENT_OBJ_DELETE:
                 self.client.send_message(base_path + "/delete", [-1, -1])
 
